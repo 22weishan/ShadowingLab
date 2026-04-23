@@ -1315,6 +1315,18 @@ def _phase_capture():
 
     st.markdown("---")
 
+    col_finish, col_feedback = st.columns([2, 1])
+    with col_feedback:
+        st.markdown(
+            '<a href="https://docs.google.com/forms/d/e/1FAIpQLSc6Yl9b5NDR3Zvaaf_k3z1fiYWCgmfj9OspAhFu7tEOt8mo4g/viewform" target="_blank" ' +
+            'style="display:block;text-align:center;background:#F9FAFB;' +
+            'border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;' +
+            'font-size:.85rem;color:#374151;text-decoration:none;margin-top:2px;">' +
+            '💬 Share Feedback / 反馈</a>',
+            unsafe_allow_html=True
+        )
+    with col_finish:
+        pass
     if st.button("✅ Finish Session / 结束会话", type="primary", key="cap_finish"):
         tag_dist: dict = {}
         for n in session_notices:

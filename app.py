@@ -73,6 +73,17 @@ with st.sidebar:
 
     st.markdown("---")
 
+    # Feedback link
+    st.markdown(
+        '<a href="https://docs.google.com/forms/d/e/1FAIpQLSc6Yl9b5NDR3Zvaaf_k3z1fiYWCgmfj9OspAhFu7tEOt8mo4g/viewform" target="_blank" ' +
+        'style="display:block;text-align:center;background:#F9FAFB;' +
+        'border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;' +
+        'font-size:.85rem;color:#374151;text-decoration:none;">' +
+        '💬 Share Feedback / 反馈</a>',
+        unsafe_allow_html=True
+    )
+    st.markdown("<div style='margin-bottom:4px;'></div>", unsafe_allow_html=True)
+
     # live session status
     if st.session_state.get("active_material"):
         mat = st.session_state.active_material
