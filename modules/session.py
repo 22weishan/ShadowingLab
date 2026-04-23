@@ -792,13 +792,12 @@ def _phase_shadow():
                 del st.session_state.recordings_by_segment[cur]
                 st.rerun()
         else:
-            result_rec = _recorder_component(
-                seg_key,
-                "Sentence " + str(cur + 1) + " shadowing",
-                "第" + str(cur + 1) + "句跟读",
-            )
-            if result_rec:
-                st.session_state.recordings_by_segment[cur] = result_rec["value"]
+            st.caption(f"🎙️ Sentence {cur+1} shadowing / 第{cur+1}句跟读")
+            audio = st.audio_input("Record", key=f"audio_input_{seg_key}",
+                                    label_visibility="collapsed")
+            if audio is not None:
+                b64 = base64.b64encode(audio.read()).decode()
+                st.session_state.recordings_by_segment[cur] = b64
                 st.session_state.visited_segments.add(cur)
                 st.rerun()
         done_segs = sorted(st.session_state.recordings_by_segment)
