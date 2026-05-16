@@ -17,6 +17,7 @@ from modules.state     import start_new_session, advance_phase
 from modules.materials import get_all_materials, get_segments, TAGS
 from modules.phonology  import inline_concept_card
 from modules.ai         import get_session_suggestion, is_ai_available, get_timestamps_for_material
+from modules.userdata   import save_user_data
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1605,4 +1606,10 @@ def _phase_capture():
         st.session_state.session_phase   = "select"
         st.session_state.active_material = None
         st.session_state.current_session_id = None
+
+        # Auto-save to Firestore
+        uid = st.session_state.get("user_uid")
+        if uid:
+            save_user_data(uid)
+
         st.rerun()

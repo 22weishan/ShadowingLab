@@ -3,6 +3,11 @@ import uuid
 
 def init_state():
     defaults = {
+        # user identity & sync
+        "user_uid":             None,       # localStorage UUID, set by uid_component
+        "data_loaded":          False,      # True after Firestore data is loaded
+        "last_saved_at":        None,       # HH:MM of last successful save
+
         # navigation
         "page":                 "session",
         "session_phase":        "select",   # select | prepare | shadow | compare | capture

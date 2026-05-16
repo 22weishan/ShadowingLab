@@ -15,6 +15,7 @@ from modules.landing  import landing_page
 from modules.styles   import inject_global_css
 from modules.research import research_page
 from modules.community import community_page
+from modules.userdata  import init_user, trigger_save
 
 inject_global_css()
 init_state()
@@ -25,6 +26,9 @@ if "onboarding_step" not in st.session_state:
     st.session_state.onboarding_step = 0
 if "page" not in st.session_state:
     st.session_state.page = "landing"
+
+# Initialise user identity + load Firestore data (invisible, runs every render)
+init_user()
 
 # ── sidebar ───────────────────────────────────────────────────────
 with st.sidebar:
@@ -72,6 +76,22 @@ with st.sidebar:
     ):
         st.session_state.page = "research"
         st.rerun()
+
+    st.markdown("---")
+
+    # Save progress button + status
+    last_saved = st.session_state.get("last_saved_at")
+    uid = st.session_state.get("user_uid")
+    if uid:
+        save_label = f"💾 Save progress" + (f" · {last_saved}" if last_saved else "")
+        if st.button(save_label, use_container_width=True, key="sidebar_save"):
+            trigger_save()
+    else:
+        st.markdown(
+            '<div style="font-size:.72rem;color:#9CA3AF;text-align:center;padding:4px 0;">'
+            '⏳ Connecting…</div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown("---")
 
