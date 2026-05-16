@@ -119,18 +119,252 @@ def _annotated_sentence_html(seg: dict, active: bool = False,
     )
 
 
-def _recorder_component(rec_key: str, label_en: str, label_zh: str,
-                         existing_b64: str | None = None) -> dict | None:
+def _js_recorder_component(rec_key: str, label_en: str, label_zh: str) -> dict | None:
     """
-    Native Streamlit audio recorder using st.audio_input().
+    Custom JS recorder using MediaRecorder API with explicit error handling.
     Returns {type:'rec', value:<base64>} on new recording, else None.
+    The rec_key must change between calls to force iframe re-render after each take.
     """
-    st.caption(f"🎙️ {label_en} / {label_zh}")
-    audio = st.audio_input("Record", key=f"audio_input_{rec_key}",
-                            label_visibility="collapsed")
-    if audio is not None:
-        b64 = base64.b64encode(audio.read()).decode()
-        return {"type": "rec", "value": b64}
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
+<style>
+body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
+#wrap{{padding:6px 0;}}
+.lbl{{font-size:.78rem;color:#6B7280;margin-bottom:8px;}}
+#btn{{background:#2563EB;color:#fff;border:none;border-radius:8px;
+      padding:8px 18px;font-size:.85rem;font-weight:700;cursor:pointer;}}
+#btn:hover{{background:#1D4ED8;}}
+#btn.rec{{background:#DC2626;animation:pulse 1s infinite;}}
+#btn:disabled{{opacity:.4;cursor:not-allowed;animation:none;}}
+@keyframes pulse{{0%,100%{{opacity:1;}}50%{{opacity:.7;}}}}
+#status{{font-size:.78rem;margin-top:6px;color:#6B7280;min-height:18px;}}
+#err{{font-size:.78rem;margin-top:4px;color:#DC2626;min-height:14px;}}
+audio{{margin-top:8px;width:100%;max-width:340px;display:none;}}
+</style></head><body>
+<div id="wrap">
+  <div class="lbl">🎙️ {label_en} / {label_zh}</div>
+  <button id="btn" onclick="toggle()">▶ Start Recording</button>
+  <div id="status">Click to start recording.</div>
+  <div id="err"></div>
+  <audio id="preview" controls></audio>
+</div>
+<script>(function(){{
+let recorder=null,chunks=[],stream=null,recording=false;
+const btn=document.getElementById("btn");
+const status=document.getElementById("status");
+const err=document.getElementById("err");
+const preview=document.getElementById("preview");
+
+function toggle(){{ if(!recording) startRec(); else stopRec(); }}
+window.toggle=toggle;
+
+async function startRec(){{
+  err.textContent="";
+  try{{
+    stream=await navigator.mediaDevices.getUserMedia({{audio:true,video:false}});
+  }}catch(e){{
+    if(e.name==="NotAllowedError"||e.name==="PermissionDeniedError")
+      err.textContent="❌ Microphone access denied. Please allow microphone in browser settings.";
+    else if(e.name==="NotFoundError")
+      err.textContent="❌ No microphone found. Please connect one and try again.";
+    else
+      err.textContent="❌ Could not access microphone: "+e.message;
+    return;
+  }}
+  chunks=[];
+  let mimeType="audio/webm";
+  if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="";
+  recorder=new MediaRecorder(stream,mimeType?{{mimeType}}:{{}});
+  recorder.ondataavailable=e=>{{ if(e.data.size>0) chunks.push(e.data); }};
+  recorder.onstop=()=>{{
+    const blob=new Blob(chunks,{{type:"audio/webm"}});
+    preview.src=URL.createObjectURL(blob);
+    preview.style.display="block";
+    const reader=new FileReader();
+    reader.onloadend=()=>{{
+      Streamlit.setComponentValue({{type:"rec",value:reader.result.split(",")[1]}});
+      status.textContent="✅ Saved. Re-record anytime by clicking again.";
+      btn.disabled=false;
+      btn.textContent="▶ Start Recording";
+      btn.classList.remove("rec");
+    }};
+    reader.readAsDataURL(blob);
+    stream.getTracks().forEach(t=>t.stop()); stream=null;
+  }};
+  recorder.start();
+  recording=true;
+  btn.textContent="⏹ Stop Recording";
+  btn.classList.add("rec");
+  status.textContent="🔴 Recording…";
+}}
+
+function stopRec(){{
+  if(recorder&&recorder.state!=="inactive") recorder.stop();
+  recording=false;
+  btn.textContent="▶ Start Recording";
+  btn.classList.remove("rec");
+  btn.disabled=true;
+  status.textContent="Processing…";
+}}
+
+Streamlit.setFrameHeight(document.body.scrollHeight||130);
+}})();</script></body></html>"""
+    result = components.html(html, height=140, scrolling=False)
+    if isinstance(result, dict) and result.get("type") == "rec":
+        return result
+    return None
+
+
+def _sync_shadow_component(audio_b64: str, ts_start: float, ts_end: float,
+                            seg_num: int, total_segs: int, take_num: int = 0) -> dict | None:
+    """
+    Simultaneous playback + recording. Plays the audio segment while recording
+    from microphone at the same time — true shadowing mode.
+    take_num is embedded in HTML so the iframe resets after each stored take.
+    Returns {type:'rec', value:<base64>} on completion, else None.
+    """
+    duration = ts_end - ts_start
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<!-- take:{take_num} seg:{seg_num} -->
+<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
+<style>
+body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
+#wrap{{background:#F5F3FF;border:1.5px solid #7C3AED;border-radius:12px;padding:12px 16px;}}
+.lbl{{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+      color:#7C3AED;margin-bottom:10px;}}
+#btn{{background:#7C3AED;color:#fff;border:none;border-radius:8px;padding:10px 0;
+      font-size:.88rem;font-weight:700;cursor:pointer;width:100%;}}
+#btn:hover{{background:#6D28D9;}}
+#btn.running{{background:#DC2626;cursor:default;animation:pulse 1s infinite;}}
+#btn:disabled{{opacity:.4;cursor:not-allowed;animation:none;}}
+@keyframes pulse{{0%,100%{{opacity:1;}}50%{{opacity:.7;}}}}
+#prog{{height:5px;background:#DDD6FE;border-radius:3px;margin-top:8px;display:none;overflow:hidden;}}
+#progfill{{height:100%;width:0%;background:#7C3AED;border-radius:3px;transition:width .1s linear;}}
+#status{{font-size:.8rem;margin-top:6px;color:#6B7280;text-align:center;min-height:18px;}}
+#err{{font-size:.78rem;margin-top:4px;color:#DC2626;text-align:center;min-height:14px;}}
+audio{{margin-top:8px;width:100%;display:none;}}
+</style></head><body>
+<div id="wrap">
+  <div class="lbl">🎤 Sync Shadow · Sentence {seg_num}/{total_segs} · Take {take_num+1}</div>
+  <button id="btn" onclick="startShadow()">▶ Play &amp; Shadow Simultaneously</button>
+  <div id="prog"><div id="progfill"></div></div>
+  <div id="status">Click to hear the sentence and record your shadow at the same time.</div>
+  <div id="err"></div>
+  <audio id="preview" controls></audio>
+</div>
+<script>(function(){{
+const B64="{audio_b64}";
+const TS_START={ts_start};
+const DURATION={duration:.3f};
+let running=false;
+const btn=document.getElementById("btn");
+const status=document.getElementById("status");
+const err=document.getElementById("err");
+const prog=document.getElementById("prog");
+const progfill=document.getElementById("progfill");
+const preview=document.getElementById("preview");
+
+async function startShadow(){{
+  if(running) return;
+  err.textContent="";
+  status.textContent="Requesting microphone…";
+  btn.disabled=true;
+  let stream;
+  try{{
+    stream=await navigator.mediaDevices.getUserMedia({{
+      audio:{{
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false,
+        channelCount:1
+      }},
+      video:false
+    }});
+  }}catch(e){{
+    btn.disabled=false;
+    if(e.name==="NotAllowedError"||e.name==="PermissionDeniedError")
+      err.textContent="❌ Microphone denied. Allow it in browser settings and try again.";
+    else if(e.name==="NotFoundError")
+      err.textContent="❌ No microphone found.";
+    else
+      err.textContent="❌ Mic error: "+e.message;
+    status.textContent="";
+    return;
+  }}
+  status.textContent="Loading audio…";
+  try{{
+    const bin=atob(B64);
+    const buf=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+    const AudioCtx=window.AudioContext||window.webkitAudioContext;
+    const actx=new AudioCtx();
+    const decoded=await new Promise((res,rej)=>actx.decodeAudioData(buf.buffer,res,rej));
+
+    let mimeType="audio/webm;codecs=opus";
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="audio/webm";
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="";
+    const recOpts=mimeType?{{mimeType,audioBitsPerSecond:128000}}:{{}};
+    const recorder=new MediaRecorder(stream,recOpts);
+    const chunks=[];
+    recorder.ondataavailable=e=>{{ if(e.data.size>0) chunks.push(e.data); }};
+    recorder.onstop=()=>{{
+      const blob=new Blob(chunks,{{type:mimeType||"audio/webm"}});
+      preview.src=URL.createObjectURL(blob);
+      preview.style.display="block";
+      const reader=new FileReader();
+      reader.onloadend=()=>{{
+        Streamlit.setComponentValue({{type:"rec",value:reader.result.split(",")[1]}});
+        status.textContent="✅ Done! Listen to your shadow below.";
+        btn.disabled=false;
+        btn.textContent="▶ Shadow Again";
+        btn.classList.remove("running");
+        prog.style.display="none";
+        running=false;
+      }};
+      reader.readAsDataURL(blob);
+      stream.getTracks().forEach(t=>t.stop());
+    }};
+
+    const source=actx.createBufferSource();
+    source.buffer=decoded;
+    source.connect(actx.destination);
+
+    recorder.start();
+    source.start(0, TS_START, DURATION);
+    running=true;
+    btn.classList.add("running");
+    btn.textContent="🔴 Shadowing…";
+    status.textContent="🔴 Audio playing · microphone recording simultaneously…";
+    prog.style.display="block";
+
+    const t0=actx.currentTime;
+    const iv=setInterval(()=>{{
+      const pct=Math.min(100,(actx.currentTime-t0)/DURATION*100);
+      progfill.style.width=pct+"%";
+      if(pct>=100) clearInterval(iv);
+    }},80);
+
+    source.onended=()=>{{
+      clearInterval(iv);
+      progfill.style.width="100%";
+      recorder.stop();
+      btn.disabled=true;
+      status.textContent="Processing…";
+    }};
+  }}catch(e){{
+    err.textContent="❌ Audio error: "+e.message;
+    status.textContent="";
+    btn.disabled=false;
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    running=false;
+  }}
+}}
+window.startShadow=startShadow;
+Streamlit.setFrameHeight(document.body.scrollHeight||185);
+}})();</script></body></html>"""
+    result = components.html(html, height=195, scrolling=False)
+    if isinstance(result, dict) and result.get("type") == "rec":
+        return result
     return None
 
 
@@ -672,6 +906,17 @@ def _phase_shadow():
         else:
             timestamps = get_timestamps_for_material(mat)
 
+        # annotation note
+        st.markdown(
+            '<div style="background:#F0F4FF;border-left:3px solid #2563EB;border-radius:6px;'
+            'padding:8px 14px;margin-bottom:10px;font-size:.82rem;color:#374151;line-height:1.6;">'
+            'These annotations highlight features that affect how clearly English is understood — '
+            'stress, rhythm, linking, and intonation. You don\'t need to replicate them perfectly. '
+            'Focus on noticing.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
         # ── TEXT PANEL (full width, stars clickable inside bubbles) ──
         # Star clicks use postMessage → caught by a hidden st.text_input trick:
         # we pass clicked index via query param in URL, detected on rerun.
@@ -778,12 +1023,14 @@ def _phase_shadow():
         # ── ROW 3: recording ─────────────────────────────────────────
         seg_key   = "seg" + str(cur) + "_" + mat["id"]
         saved_b64 = st.session_state.recordings_by_segment.get(cur)
+
         st.markdown("**🎙️ Your Recording / 你的录音**")
+
         if saved_b64:
             st.markdown(
                 f"Sentence {cur+1} " +
-                '<span style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;' +
-                'border-radius:99px;padding:2px 8px;font-size:.72rem;font-weight:700;">' +
+                '<span style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;'
+                'border-radius:99px;padding:2px 8px;font-size:.72rem;font-weight:700;">'
                 "&#10003; recorded</span>",
                 unsafe_allow_html=True
             )
@@ -792,14 +1039,16 @@ def _phase_shadow():
                 del st.session_state.recordings_by_segment[cur]
                 st.rerun()
         else:
-            st.caption(f"🎙️ Sentence {cur+1} shadowing / 第{cur+1}句跟读")
-            audio = st.audio_input("Record", key=f"audio_input_{seg_key}",
-                                    label_visibility="collapsed")
+            audio = st.audio_input(
+                f"🎙️ Sentence {cur+1} / 第{cur+1}句",
+                key=f"audio_input_{seg_key}",
+            )
             if audio is not None:
                 b64 = base64.b64encode(audio.read()).decode()
                 st.session_state.recordings_by_segment[cur] = b64
                 st.session_state.visited_segments.add(cur)
                 st.rerun()
+
         done_segs = sorted(st.session_state.recordings_by_segment)
         if done_segs:
             st.markdown(
@@ -848,8 +1097,9 @@ def _phase_shadow():
                 st.session_state.full_recording = None
                 st.rerun()
         else:
-            result = _recorder_component(
-                "full_" + mat["id"],
+            full_takes_done = 1 if st.session_state.full_recording else 0
+            result = _js_recorder_component(
+                f"full_{mat['id']}_take{full_takes_done}",
                 "Full passage shadowing",
                 "整段跟读录音",
             )
@@ -981,9 +1231,11 @@ def _phase_compare():
         '</div>', unsafe_allow_html=True
     )
 
-    # determine which segments to show notices for
-    if chosen_rec["type"] == "sentence":
-        target_segs = [segs[chosen_rec["seg_idx"]]]
+    # Always show notice inputs for every sentence that has a recording.
+    # (If no sentences were recorded, fall back to the full segs list.)
+    recorded_indices = sorted(st.session_state.recordings_by_segment.keys())
+    if recorded_indices:
+        target_segs = [segs[i] for i in recorded_indices]
     else:
         target_segs = segs
 

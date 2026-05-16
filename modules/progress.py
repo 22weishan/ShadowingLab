@@ -84,8 +84,15 @@ def progress_page():
     # ── ROW 2: Gap Map ────────────────────────────────────────────
     st.markdown(
         '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;'
-        'letter-spacing:.06em;color:#9CA3AF;margin-bottom:10px;">'
+        'letter-spacing:.06em;color:#9CA3AF;margin-bottom:6px;">'
         "Gap Map / 差距地图</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div style="font-size:.82rem;color:#6B7280;margin-bottom:10px;line-height:1.5;">'
+        "These are the features you've been noticing most. "
+        "Think of them as areas worth exploring — not errors to fix."
+        "</div>",
         unsafe_allow_html=True
     )
 

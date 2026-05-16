@@ -14,6 +14,7 @@ from modules.progress  import progress_page
 from modules.landing  import landing_page
 from modules.styles   import inject_global_css
 from modules.research import research_page
+from modules.community import community_page
 
 inject_global_css()
 init_state()
@@ -44,6 +45,7 @@ with st.sidebar:
         "📖  Phonology Guide":  "phonology",
         "📋  Notice Log":       "noticelog",
         "📈  Progress":         "progress",
+        "💬  Community":        "community",
     }
 
     for label, key in pages.items():
@@ -126,3 +128,4 @@ elif page == "phonology": phonology_page()
 elif page == "noticelog": noticelog_page()
 elif page == "progress":  progress_page()
 elif page == "research":  research_page()
+elif page == "community": community_page()

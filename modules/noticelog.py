@@ -7,6 +7,7 @@ Includes AI-style pattern summary when ≥10 notices exist.
 import streamlit as st
 from modules.materials import TAGS
 from modules.ai import get_pattern_summary, is_ai_available
+from modules.community import open_share_draft
 
 
 def noticelog_page():
@@ -127,6 +128,12 @@ def noticelog_page():
     # ── notice cards ─────────────────────────────────────────────
     for i, notice in enumerate(filtered):
         _notice_card(notice, i)
+        if st.button(
+            "💬 Share to Community",
+            key=f"share_community_{i}",
+            help="Share this notice to the community forum",
+        ):
+            open_share_draft(notice)
 
     # ── clear ────────────────────────────────────────────────────
     st.markdown("---")

@@ -308,6 +308,10 @@ actionable suggestion for their next session. Write 2-3 sentences in English, th
 same in Chinese. Be concrete — not "practise more" but "before shadowing, circle every
 consonant-vowel word boundary and predict where linking will occur."
 
+When giving suggestions, frame them around improving intelligibility and communicative
+clarity — not around eliminating accent or achieving native-speaker pronunciation.
+Encourage the learner's progress without implying their accent is a problem.
+
 Format: one paragraph in English, then one paragraph in Chinese. No headings."""
 
 
