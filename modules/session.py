@@ -268,6 +268,7 @@ def _sentence_recorder_component(seg_key: str, seg_num: int) -> dict | None:
     Returns {type:'rec', value:<base64>} on new recording, else None.
     """
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<!-- key:{seg_key} -->
 <script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
 <style>
 body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
@@ -325,10 +326,12 @@ async function startRec(){{
     const blob=new Blob(chunks,{{type:mimeType||"audio/webm"}});
     preview.src=URL.createObjectURL(blob);
     preview.style.display="block";
+    Streamlit.setFrameHeight(document.body.scrollHeight);
+    status.textContent="⏳ Saving…";
     const reader=new FileReader();
     reader.onloadend=()=>{{
       Streamlit.setComponentValue({{type:"rec",value:reader.result.split(",")[1]}});
-      status.textContent="✅ Saved.";
+      status.textContent="✅ Saved — page updating…";
       btn.textContent="↺ Re-record sentence {seg_num}";
       btn.disabled=false; btn.classList.remove("rec");
     }};
@@ -352,7 +355,7 @@ function stopRec(){{
 
 Streamlit.setFrameHeight(document.body.scrollHeight||120);
 }})();</script></body></html>"""
-    result = components.html(html, height=130, scrolling=False)
+    result = components.html(html, height=160, scrolling=False)
     if isinstance(result, dict) and result.get("type") == "rec":
         return result
     return None
@@ -1197,8 +1200,6 @@ def _phase_shadow():
                 unsafe_allow_html=True
             )
 
-        st.markdown("---")
-
         
     # ── FULL PASSAGE TAB ───────────────────────────────────────────
     with tab_full:
@@ -1247,7 +1248,6 @@ def _phase_shadow():
                 st.session_state.full_recording = result["value"]
                 st.rerun()
 
-    st.markdown("---")
     col_b, col_f, _ = st.columns([1, 1.5, 2])
     with col_b:
         if st.button("Back to Prepare", key="shd_back"):
