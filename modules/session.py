@@ -165,7 +165,6 @@ def _js_recorder_component(rec_key: str, label_en: str, label_zh: str) -> dict |
     Returns {type:'rec', value:<base64>} on new recording, else None.
     """
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
 <style>
 body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
 #wrap{{padding:6px 0;}}
@@ -181,6 +180,7 @@ body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
 #micinfo{{font-size:.72rem;color:#9CA3AF;margin-top:2px;min-height:14px;}}
 audio{{margin-top:8px;width:100%;max-width:340px;display:none;}}
 </style></head><body>
+<!-- key:{rec_key} -->
 <div id="wrap">
   <div class="lbl">🎙️ {label_en} / {label_zh}</div>
   <button id="btn" onclick="toggle()">▶ Start Recording</button>
@@ -190,8 +190,16 @@ audio{{margin-top:8px;width:100%;max-width:340px;display:none;}}
   <audio id="preview" controls></audio>
 </div>
 <script>
-{_GET_NONBT_MIC_JS}
 (function(){{
+function post(type,extra){{
+  window.parent.postMessage(Object.assign({{isStreamlitMessage:true,type:type}},extra),"*");
+}}
+function SL_setFrameHeight(h){{post("streamlit:setFrameHeight",{{height:h}});}}
+function SL_setValue(val){{post("streamlit:setComponentValue",{{value:val,dataType:"json"}});}}
+post("streamlit:componentReady",{{apiVersion:1}});
+
+{_GET_NONBT_MIC_JS}
+
 let recorder=null,chunks=[],stream=null,recording=false;
 const btn=document.getElementById("btn");
 const status=document.getElementById("status");
@@ -218,18 +226,21 @@ async function startRec(){{
     return;
   }}
   chunks=[];
-  let mimeType="audio/webm";
+  let mimeType="audio/webm;codecs=opus";
+  if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="audio/webm";
   if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="";
-  recorder=new MediaRecorder(stream,mimeType?{{mimeType}}:{{}});
+  recorder=new MediaRecorder(stream,mimeType?{{mimeType,audioBitsPerSecond:128000}}:{{}});
   recorder.ondataavailable=e=>{{ if(e.data.size>0) chunks.push(e.data); }};
   recorder.onstop=()=>{{
-    const blob=new Blob(chunks,{{type:"audio/webm"}});
+    const blob=new Blob(chunks,{{type:mimeType||"audio/webm"}});
     preview.src=URL.createObjectURL(blob);
     preview.style.display="block";
+    SL_setFrameHeight(document.body.scrollHeight);
+    status.textContent="⏳ Saving…";
     const reader=new FileReader();
     reader.onloadend=()=>{{
-      Streamlit.setComponentValue({{type:"rec",value:reader.result.split(",")[1]}});
-      status.textContent="✅ Saved. Re-record anytime by clicking again.";
+      SL_setValue({{type:"rec",value:reader.result.split(",")[1]}});
+      status.textContent="✅ Saved — page updating…";
       btn.disabled=false;
       btn.textContent="▶ Start Recording";
       btn.classList.remove("rec");
@@ -253,7 +264,7 @@ function stopRec(){{
   status.textContent="Processing…";
 }}
 
-Streamlit.setFrameHeight(document.body.scrollHeight||145);
+SL_setFrameHeight(document.body.scrollHeight||145);
 }})();</script></body></html>"""
     result = components.html(html, height=155, scrolling=False)
     if isinstance(result, dict) and result.get("type") == "rec":
@@ -261,10 +272,10 @@ Streamlit.setFrameHeight(document.body.scrollHeight||145);
     return None
 
 
-_RECORDER_COMPONENT_PATH = os.path.join(
+_RECORDER_COMPONENT_PATH = os.path.normpath(os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "..", "components", "sentence_recorder"
-)
+))
 _sentence_recorder_func = components.declare_component(
     "sentence_recorder",
     path=_RECORDER_COMPONENT_PATH,

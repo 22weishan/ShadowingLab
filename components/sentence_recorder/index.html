@@ -2,46 +2,78 @@
 <html>
 <head>
 <meta charset="utf-8">
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
 <style>
-body {margin:0;font-family:system-ui,sans-serif;background:transparent;}
-#wrap {padding:4px 0;}
-#btn {background:#7C3AED;color:#fff;border:none;border-radius:8px;
-      padding:8px 20px;font-size:.85rem;font-weight:700;cursor:pointer;}
-#btn:hover {background:#6D28D9;}
-#btn.rec {background:#DC2626;animation:pulse 1s infinite;}
-#btn:disabled {opacity:.4;cursor:not-allowed;animation:none;}
-@keyframes pulse {0%,100%{opacity:1;}50%{opacity:.7;}}
-#status {font-size:.75rem;margin-top:5px;color:#6B7280;min-height:16px;}
-#err    {font-size:.74rem;margin-top:3px;color:#DC2626;min-height:13px;}
-#micinfo{font-size:.7rem;color:#9CA3AF;margin-top:2px;min-height:13px;}
-audio   {margin-top:6px;width:100%;display:none;}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: transparent; }
+#wrap { padding: 4px 0; }
+#btn {
+  background: #7C3AED; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 20px; font-size: .85rem; font-weight: 700; cursor: pointer;
+}
+#btn:hover { background: #6D28D9; }
+#btn.rec { background: #DC2626; animation: pulse 1s infinite; }
+#btn:disabled { opacity: .4; cursor: not-allowed; animation: none; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.7; } }
+#status  { font-size:.75rem; margin-top:5px; color:#6B7280; min-height:16px; }
+#err     { font-size:.74rem; margin-top:3px; color:#DC2626; min-height:13px; }
+#micinfo { font-size:.7rem; color:#9CA3AF; margin-top:2px; min-height:13px; }
+audio    { margin-top:6px; width:100%; display:none; }
 </style>
 </head>
 <body>
 <div id="wrap">
   <button id="btn" onclick="toggle()">🎙️ Record</button>
-  <div id="status">Click to record your shadow. / 点击开始录音。</div>
+  <div id="status">Click to record. / 点击开始录音。</div>
   <div id="err"></div>
   <div id="micinfo"></div>
   <audio id="preview" controls></audio>
 </div>
 <script>
-// Prefer built-in / non-Bluetooth mic to keep Bluetooth in A2DP mode
+// ── Streamlit component protocol (no CDN needed) ──────────────────────
+// Messages from parent use isStreamlitMessage:true + type "streamlit:render"
+// We send isStreamlitMessage:true + type "streamlit:setComponentValue" / "streamlit:setFrameHeight"
+(function () {
+  function post(type, extra) {
+    window.parent.postMessage(
+      Object.assign({ isStreamlitMessage: true, type: type }, extra),
+      "*"
+    );
+  }
+  window.SL = {
+    setFrameHeight: function (h) {
+      post("streamlit:setFrameHeight", { height: h });
+    },
+    setComponentValue: function (val) {
+      post("streamlit:setComponentValue", { value: val, dataType: "json" });
+    }
+  };
+  // Listen for render events (carries props from Python)
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "streamlit:render" && e.data.args) {
+      var segNum = e.data.args.seg_num || 1;
+      if (!recording) btn.textContent = "🎙️ Record sentence " + segNum;
+      window._segNum = segNum;
+    }
+  });
+  // Signal ready
+  post("streamlit:componentReady", { apiVersion: 1 });
+})();
+
+// ── Prefer built-in / non-Bluetooth microphone ───────────────────────
 async function getNonBtStream() {
   try {
-    const probe = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-    probe.getTracks().forEach(t=>t.stop());
+    var probe = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    probe.getTracks().forEach(function(t){t.stop();});
   } catch(_) {}
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const mics = devices.filter(d =>
-    d.kind==='audioinput' && d.deviceId!=='default' && d.deviceId!=='communications'
-  );
-  const btKw = ['bluetooth','airpods','beats','wireless','headset','headphone',
-                'bose','sony','jabra','sennheiser','plantronics','poly','anker'];
-  const biKw = ['built-in','macbook','internal','内置','laptop','built in'];
-  let pick = mics.find(m => biKw.some(k => m.label.toLowerCase().includes(k)));
-  if (!pick) pick = mics.find(m => !btKw.some(k => m.label.toLowerCase().includes(k)));
+  var devices = await navigator.mediaDevices.enumerateDevices();
+  var mics = devices.filter(function(d){
+    return d.kind==="audioinput" && d.deviceId!=="default" && d.deviceId!=="communications";
+  });
+  var btKw = ["bluetooth","airpods","beats","wireless","headset","headphone",
+               "bose","sony","jabra","sennheiser","plantronics","poly","anker"];
+  var biKw = ["built-in","macbook","internal","内置","laptop","built in"];
+  var pick = mics.find(function(m){ return biKw.some(function(k){ return m.label.toLowerCase().indexOf(k)>=0; }); });
+  if (!pick) pick = mics.find(function(m){ return !btKw.some(function(k){ return m.label.toLowerCase().indexOf(k)>=0; }); });
   if (!pick && mics.length) pick = mics[0];
   return navigator.mediaDevices.getUserMedia({
     audio: {
@@ -53,21 +85,14 @@ async function getNonBtStream() {
   });
 }
 
-let segNum = 1;
-let recorder = null, chunks = [], stream = null, recording = false;
-const btn     = document.getElementById("btn");
-const status  = document.getElementById("status");
-const err     = document.getElementById("err");
-const micinfo = document.getElementById("micinfo");
-const preview = document.getElementById("preview");
-
-Streamlit.onRender(function(event) {
-  segNum = event.detail.args.seg_num || 1;
-  if (!recording) {
-    btn.textContent = "🎙️ Record sentence " + segNum;
-  }
-  Streamlit.setFrameHeight(document.body.scrollHeight || 120);
-});
+// ── Recorder logic ────────────────────────────────────────────────────
+window._segNum = 1;
+var recorder = null, chunks = [], stream = null, recording = false;
+var btn     = document.getElementById("btn");
+var status  = document.getElementById("status");
+var err     = document.getElementById("err");
+var micinfo = document.getElementById("micinfo");
+var preview = document.getElementById("preview");
 
 function toggle() { if (!recording) startRec(); else stopRec(); }
 
@@ -75,7 +100,7 @@ async function startRec() {
   err.textContent = ""; micinfo.textContent = "";
   try {
     stream = await getNonBtStream();
-    const track = stream.getAudioTracks()[0];
+    var track = stream.getAudioTracks()[0];
     if (track) micinfo.textContent = "🎤 " + track.label;
   } catch(e) {
     err.textContent = e.name === "NotAllowedError"
@@ -84,27 +109,28 @@ async function startRec() {
     return;
   }
   chunks = [];
-  let mimeType = "audio/webm;codecs=opus";
+  var mimeType = "audio/webm;codecs=opus";
   if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
   if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "";
-  recorder = new MediaRecorder(stream, mimeType ? {mimeType, audioBitsPerSecond:128000} : {});
-  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-  recorder.onstop = () => {
-    const blob = new Blob(chunks, {type: mimeType || "audio/webm"});
+  recorder = new MediaRecorder(stream, mimeType ? {mimeType:mimeType, audioBitsPerSecond:128000} : {});
+  recorder.ondataavailable = function(e) { if (e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = function() {
+    var blob = new Blob(chunks, {type: mimeType || "audio/webm"});
     preview.src = URL.createObjectURL(blob);
     preview.style.display = "block";
-    Streamlit.setFrameHeight(document.body.scrollHeight);
+    SL.setFrameHeight(document.body.scrollHeight);
     status.textContent = "⏳ Saving…";
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      Streamlit.setComponentValue({type:"rec", value:reader.result.split(",")[1]});
+    var reader = new FileReader();
+    reader.onloadend = function() {
+      var b64 = reader.result.split(",")[1];
+      SL.setComponentValue({type: "rec", value: b64});
       status.textContent = "✅ Saved — page updating…";
-      btn.textContent = "↺ Re-record sentence " + segNum;
+      btn.textContent = "↺ Re-record sentence " + window._segNum;
       btn.disabled = false;
       btn.classList.remove("rec");
     };
     reader.readAsDataURL(blob);
-    stream.getTracks().forEach(t => t.stop());
+    stream.getTracks().forEach(function(t){t.stop();});
     stream = null;
   };
   recorder.start();
@@ -122,7 +148,8 @@ function stopRec() {
   status.textContent = "Processing…";
 }
 
-Streamlit.setFrameHeight(document.body.scrollHeight || 120);
+// Initial height signal
+SL.setFrameHeight(document.body.scrollHeight || 120);
 </script>
 </body>
 </html>
