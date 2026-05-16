@@ -10,7 +10,7 @@ Phase 5  capture  — structured reflection + session summary
 
 import streamlit as st
 import streamlit.components.v1 as components
-import base64, json
+import base64, json, os
 from datetime import datetime
 
 from modules.state     import start_new_session, advance_phase
@@ -261,101 +261,23 @@ Streamlit.setFrameHeight(document.body.scrollHeight||145);
     return None
 
 
+_RECORDER_COMPONENT_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "components", "sentence_recorder"
+)
+_sentence_recorder_func = components.declare_component(
+    "sentence_recorder",
+    path=_RECORDER_COMPONENT_PATH,
+)
+
+
 def _sentence_recorder_component(seg_key: str, seg_num: int) -> dict | None:
     """
-    Sentence-level recorder replacing st.audio_input.
+    Sentence-level recorder using a declared Streamlit component.
     Uses getNonBtStream() so Bluetooth headphones stay in A2DP mode.
     Returns {type:'rec', value:<base64>} on new recording, else None.
     """
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<!-- key:{seg_key} -->
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
-<style>
-body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
-#wrap{{padding:4px 0;}}
-#btn{{background:#7C3AED;color:#fff;border:none;border-radius:8px;
-      padding:8px 20px;font-size:.85rem;font-weight:700;cursor:pointer;}}
-#btn:hover{{background:#6D28D9;}}
-#btn.rec{{background:#DC2626;animation:pulse 1s infinite;}}
-#btn:disabled{{opacity:.4;cursor:not-allowed;animation:none;}}
-@keyframes pulse{{0%,100%{{opacity:1;}}50%{{opacity:.7;}}}}
-#status{{font-size:.75rem;margin-top:5px;color:#6B7280;min-height:16px;}}
-#err{{font-size:.74rem;margin-top:3px;color:#DC2626;min-height:13px;}}
-#micinfo{{font-size:.7rem;color:#9CA3AF;margin-top:2px;min-height:13px;}}
-audio{{margin-top:6px;width:100%;display:none;}}
-</style></head><body>
-<div id="wrap">
-  <button id="btn" onclick="toggle()">🎙️ Record sentence {seg_num}</button>
-  <div id="status">Click to record your shadow.</div>
-  <div id="err"></div>
-  <div id="micinfo"></div>
-  <audio id="preview" controls></audio>
-</div>
-<script>
-{_GET_NONBT_MIC_JS}
-(function(){{
-let recorder=null,chunks=[],stream=null,recording=false;
-const btn=document.getElementById("btn");
-const status=document.getElementById("status");
-const err=document.getElementById("err");
-const micinfo=document.getElementById("micinfo");
-const preview=document.getElementById("preview");
-
-function toggle(){{ if(!recording) startRec(); else stopRec(); }}
-window.toggle=toggle;
-
-async function startRec(){{
-  err.textContent=""; micinfo.textContent="";
-  try{{
-    stream=await getNonBtStream();
-    const track=stream.getAudioTracks()[0];
-    if(track) micinfo.textContent="🎤 "+track.label;
-  }}catch(e){{
-    if(e.name==="NotAllowedError"||e.name==="PermissionDeniedError")
-      err.textContent="❌ Microphone access denied.";
-    else err.textContent="❌ "+e.message;
-    return;
-  }}
-  chunks=[];
-  let mimeType="audio/webm;codecs=opus";
-  if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="audio/webm";
-  if(!MediaRecorder.isTypeSupported(mimeType)) mimeType="";
-  recorder=new MediaRecorder(stream,mimeType?{{mimeType,audioBitsPerSecond:128000}}:{{}});
-  recorder.ondataavailable=e=>{{ if(e.data.size>0) chunks.push(e.data); }};
-  recorder.onstop=()=>{{
-    const blob=new Blob(chunks,{{type:mimeType||"audio/webm"}});
-    preview.src=URL.createObjectURL(blob);
-    preview.style.display="block";
-    Streamlit.setFrameHeight(document.body.scrollHeight);
-    status.textContent="⏳ Saving…";
-    const reader=new FileReader();
-    reader.onloadend=()=>{{
-      Streamlit.setComponentValue({{type:"rec",value:reader.result.split(",")[1]}});
-      status.textContent="✅ Saved — page updating…";
-      btn.textContent="↺ Re-record sentence {seg_num}";
-      btn.disabled=false; btn.classList.remove("rec");
-    }};
-    reader.readAsDataURL(blob);
-    stream.getTracks().forEach(t=>t.stop()); stream=null;
-  }};
-  recorder.start();
-  recording=true;
-  btn.textContent="⏹ Stop";
-  btn.classList.add("rec");
-  status.textContent="🔴 Recording…";
-}}
-
-function stopRec(){{
-  if(recorder&&recorder.state!=="inactive") recorder.stop();
-  recording=false;
-  btn.classList.remove("rec");
-  btn.disabled=true;
-  status.textContent="Processing…";
-}}
-
-Streamlit.setFrameHeight(document.body.scrollHeight||120);
-}})();</script></body></html>"""
-    result = components.html(html, height=160, scrolling=False)
+    result = _sentence_recorder_func(seg_num=seg_num, key=seg_key)
     if isinstance(result, dict) and result.get("type") == "rec":
         return result
     return None
