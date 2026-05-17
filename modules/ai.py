@@ -119,6 +119,8 @@ def align_whisper_to_segments(whisper_result: dict, segments: list) -> list:
         # fallback: use search_from position
         if start_idx is None:
             start_idx = search_from
+        # clamp so we never go past the end of the word list
+        start_idx = min(start_idx, len(words) - 1)
 
         # ── find end of segment ──────────────────────────────────
         # search up to n_words*2 ahead to handle insertions/deletions
