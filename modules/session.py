@@ -576,9 +576,26 @@ def _phase_prepare():
 
     with col_right:
         st.markdown("**📄 Full Text / 完整文本**")
+        st.markdown(
+            '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.72rem;'
+            'color:#6B7280;margin-bottom:10px;line-height:1.8;">'
+            '<span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;'
+            'background:#0C447C;vertical-align:middle;margin-right:3px;"></span>stress</span>'
+            '<span style="color:#854F0B;">★ nuclear</span>'
+            '<span style="color:#993C1D;">↘ fall &nbsp; </span>'
+            '<span style="color:#0F6E56;">↗ rise</span>'
+            '<span style="background:#DBEAFE;color:#185FA5;border-radius:3px;'
+            'padding:1px 4px;">⌢ link</span>'
+            '<span style="background:#F1EFE8;color:#5F5E5A;border-radius:3px;'
+            'padding:1px 4px;font-style:italic;">wk weak</span>'
+            '<span style="color:#9CA3AF;font-size:.68rem;">'
+            '↑ suprasegmental &nbsp;|&nbsp; ↓ segmental</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
         for seg in segs:
-            st.markdown(f'<div class="sent-inactive">{seg["text"]}</div>',
-                        unsafe_allow_html=True)
+            ann_html = _render_word_annotations(seg)
+            st.markdown(ann_html, unsafe_allow_html=True)
 
     st.markdown("---")
     col_nav1, col_nav2, _ = st.columns([1, 1, 3])
@@ -890,18 +907,29 @@ def _render_word_annotations(seg: dict) -> str:
         ann_types = {a["type"] for a in anns}
         is_last   = (i == len(words) - 1)
 
-        # ── above-word annotation ─────────────────────────────────
-        above = ""
+        # ── above-word (suprasegmental): stress, nuclear, intonation ─
+        above_parts = []
         if "nuclear" in ann_types:
-            above = '<span style="font-size:11px;color:#854F0B;line-height:1;">&#9733;</span>'
+            above_parts.append('<span style="font-size:11px;color:#854F0B;line-height:1;">&#9733;</span>')
         elif "stress" in ann_types:
-            above = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0C447C;"></span>'
+            above_parts.append('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0C447C;"></span>')
         else:
-            # unstressed dot only if it has a linking or is a function word
-            if "weak" in ann_types or "link" in ann_types:
-                pass  # nothing above — label shown below
-            else:
-                above = '<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:#B5D4F4;"></span>'
+            if not ("weak" in ann_types or "link" in ann_types):
+                above_parts.append('<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:#B5D4F4;"></span>')
+        # intonation is suprasegmental → above
+        arrows = {"fall": "&#8600;", "rise": "&#8599;", "fall_rise": "&#8599;&#8600;"}
+        colors = {"fall": "#993C1D", "rise": "#0F6E56", "fall_rise": "#534AB7"}
+        if is_last:
+            arr = arrows.get(final, "&#8600;")
+            col = colors.get(final, "#993C1D")
+            above_parts.append(f'<span style="font-size:12px;color:{col};line-height:1;">{arr}</span>')
+        elif "fall" in ann_types:
+            above_parts.append('<span style="font-size:12px;color:#993C1D;line-height:1;">&#8600;</span>')
+        elif "rise" in ann_types:
+            above_parts.append('<span style="font-size:12px;color:#0F6E56;line-height:1;">&#8599;</span>')
+        elif "fall_rise" in ann_types:
+            above_parts.append('<span style="font-size:11px;color:#534AB7;line-height:1;">&#8599;&#8600;</span>')
+        above = "".join(above_parts)
 
         # ── word styling ──────────────────────────────────────────
         if "stress" in ann_types or "nuclear" in ann_types:
@@ -911,29 +939,13 @@ def _render_word_annotations(seg: dict) -> str:
         else:
             word_style = 'font-size:.88rem;color:#374151;'
 
-        # ── below-word annotation ─────────────────────────────────
+        # ── below-word (segmental): linking, weak forms only ──────
         below = ""
-        # intonation arrow on last word
-        if is_last:
-            arrows = {"fall": "&#8600;", "rise": "&#8599;", "fall_rise": "&#8599;&#8600;"}
-            colors = {"fall": "#993C1D", "rise": "#0F6E56",  "fall_rise": "#534AB7"}
-            arr = arrows.get(final, "&#8600;")
-            col = colors.get(final, "#993C1D")
-            below = f'<span style="font-size:12px;color:{col};line-height:1;">{arr}</span>'
-        # intonation on non-last words
-        elif "fall" in ann_types:
-            below = '<span style="font-size:12px;color:#993C1D;line-height:1;">&#8600;</span>'
-        elif "rise" in ann_types:
-            below = '<span style="font-size:12px;color:#0F6E56;line-height:1;">&#8599;</span>'
-        elif "fall_rise" in ann_types:
-            below = '<span style="font-size:11px;color:#534AB7;line-height:1;">&#8599;&#8600;</span>'
-        # linking label below
-        elif "link" in ann_types:
-            lbl = next((a.get("label","⌢") for a in anns if a["type"]=="link"), "⌢")
+        if "link" in ann_types:
+            lbl = next((a.get("label", "⌢") for a in anns if a["type"] == "link"), "⌢")
             below = f'<span style="font-size:9px;background:#DBEAFE;color:#185FA5;border-radius:3px;padding:1px 3px;">{lbl}</span>'
-        # weak label below
         elif "weak" in ann_types:
-            lbl = next((a.get("label","wk") for a in anns if a["type"]=="weak"), "wk")
+            lbl = next((a.get("label", "wk") for a in anns if a["type"] == "weak"), "wk")
             below = f'<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;border-radius:3px;padding:1px 3px;font-style:italic;">{lbl}</span>'
 
         cell = (
