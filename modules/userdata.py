@@ -18,18 +18,20 @@ from datetime import datetime
 
 # ── localStorage UUID component ──────────────────────────────────────
 
-_UID_HTML = """<!DOCTYPE html><html><head><meta charset="utf-8">
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
-</head><body>
+_UID_HTML = """<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
 <script>(function(){
+  function post(type,extra){
+    window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra),"*");
+  }
+  post("streamlit:componentReady",{apiVersion:1});
   var uid = localStorage.getItem('shadowinglab_uid');
   if (!uid) {
     uid = 'sl_' + Math.random().toString(36).substr(2,9)
                + Date.now().toString(36);
     localStorage.setItem('shadowinglab_uid', uid);
   }
-  Streamlit.setComponentValue({uid: uid});
-  Streamlit.setFrameHeight(0);
+  post("streamlit:setComponentValue",{value:{uid:uid},dataType:"json"});
+  post("streamlit:setFrameHeight",{height:0});
 })();</script>
 </body></html>"""
 

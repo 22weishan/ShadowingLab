@@ -305,7 +305,6 @@ def _sync_shadow_component(audio_b64: str, ts_start: float, ts_end: float,
     duration = ts_end - ts_start
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <!-- take:{take_num} seg:{seg_num} -->
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
 <style>
 body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
 #wrap{{background:#F5F3FF;border:1.5px solid #7C3AED;border-radius:12px;padding:12px 16px;}}
@@ -332,6 +331,10 @@ audio{{margin-top:8px;width:100%;display:none;}}
   <audio id="preview" controls></audio>
 </div>
 <script>(function(){{
+function post(type,extra){{window.parent.postMessage(Object.assign({{isStreamlitMessage:true,type:type}},extra),"*");}}
+function SL_setFrameHeight(h){{post("streamlit:setFrameHeight",{{height:h}});}}
+function SL_setValue(val){{post("streamlit:setComponentValue",{{value:val,dataType:"json"}});}}
+post("streamlit:componentReady",{{apiVersion:1}});
 const B64="{audio_b64}";
 const TS_START={ts_start};
 const DURATION={duration:.3f};
@@ -392,7 +395,7 @@ async function startShadow(){{
       preview.style.display="block";
       const reader=new FileReader();
       reader.onloadend=()=>{{
-        Streamlit.setComponentValue({{type:"rec",value:reader.result.split(",")[1]}});
+        SL_setValue({{type:"rec",value:reader.result.split(",")[1]}});
         status.textContent="✅ Done! Listen to your shadow below.";
         btn.disabled=false;
         btn.textContent="▶ Shadow Again";
@@ -439,7 +442,7 @@ async function startShadow(){{
   }}
 }}
 window.startShadow=startShadow;
-Streamlit.setFrameHeight(document.body.scrollHeight||185);
+SL_setFrameHeight(document.body.scrollHeight||185);
 }})();</script></body></html>"""
     result = components.html(html, height=195, scrolling=False)
     if isinstance(result, dict) and result.get("type") == "rec":
@@ -612,7 +615,6 @@ def _audio_player_component(audio_b64, timestamps, key):
         "Continuous · 连续播放</span></button>"
     )
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
 <style>
 body{{margin:0;font-family:system-ui,sans-serif;background:transparent;}}
 #wrap{{background:#F0F4FF;border:2px solid #2563EB;border-radius:14px;padding:16px 18px;}}
@@ -663,6 +665,10 @@ audio{{display:none;}}
 <div class="mr">{shadow_btn}{flow_btn}</div>
 </div>
 <script>(function(){{
+function post(type,extra){{window.parent.postMessage(Object.assign({{isStreamlitMessage:true,type:type}},extra),"*");}}
+function SL_setFrameHeight(h){{post("streamlit:setFrameHeight",{{height:h}});}}
+function SL_setValue(val){{post("streamlit:setComponentValue",{{value:val,dataType:"json"}});}}
+post("streamlit:componentReady",{{apiVersion:1}});
 const SK="{key}";
 const ts={ts_json};
 const aud=document.getElementById("aud");
@@ -813,7 +819,7 @@ function saveState(){{sessionStorage.setItem(SK,JSON.stringify({{time:aud.curren
 function getseg(t){{for(let i=0;i<ts.length;i++)if(t>=ts[i].start&&t<ts[i].end)return i;if(t>=ts[ts.length-1].end)return ts.length-1;return 0;}}
 function setSpd(s){{aud.playbackRate=s;document.querySelectorAll(".sb").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".sb").forEach(b=>{{if(b.textContent.trim()===s+"x")b.classList.add("on");}});saveState();}}
 window.setSpd=setSpd;
-function setMode(m){{playMode=m;document.getElementById("mshadow").classList.toggle("on",m==="shadow");document.getElementById("mflow").classList.toggle("on",m==="flow");saveState();Streamlit.setComponentValue({{type:"mode",value:m}});}}
+function setMode(m){{playMode=m;document.getElementById("mshadow").classList.toggle("on",m==="shadow");document.getElementById("mflow").classList.toggle("on",m==="flow");saveState();SL_setValue({{type:"mode",value:m}});}}
 window.setMode=setMode;
 function togglePlay(){{if(aud.paused){{aud.play().then(()=>{{document.getElementById("bpl").textContent="⏸ Pause";}}).catch(()=>{{}});}}else{{aud.pause();document.getElementById("bpl").textContent="▶ Play";}}}}
 window.togglePlay=togglePlay;
@@ -842,7 +848,7 @@ setInterval(function(){{
     document.getElementById("bp").disabled=(seg===0);
     document.getElementById("bn").disabled=(seg===ts.length-1);
     buildLabels();
-    Streamlit.setComponentValue({{type:"seg",value:seg}});
+    SL_setValue({{type:"seg",value:seg}});
     saveState();
   }}
   if(playMode==="shadow"&&!aud.paused&&!p4s&&seg>=0){{
@@ -857,7 +863,7 @@ aud.addEventListener("ended",function(){{
   document.getElementById("bpl").textContent="▶ Play";
   saveState();
 }});
-Streamlit.setFrameHeight(document.body.scrollHeight||310);
+SL_setFrameHeight(document.body.scrollHeight||310);
 }})();</script></body></html>"""
     result = components.html(html, height=320, scrolling=False)
     if isinstance(result, dict) and result.get("type") in ("seg", "mode"):
@@ -1058,12 +1064,14 @@ def _phase_shadow():
             "</style></head><body>"
             f"<div id='p'>{inner}</div>"
             "<script>"
+            "function _post(t,x){window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:t},x),'*');}"
+            "_post('streamlit:componentReady',{apiVersion:1});"
             f"var saved=new Set({saved_json});"
             "function toggleStar(i){"
             "  var el=document.getElementById('star'+i);"
             "  if(saved.has(i)){saved.delete(i);el.style.color='#CBD5E1';el.innerHTML='&#9734';}"
             "  else{saved.add(i);el.style.color='#F59E0B';el.innerHTML='&#9733';}"
-            "  Streamlit.setComponentValue({type:'bk',value:i});"
+            "  _post('streamlit:setComponentValue',{value:{type:'bk',value:i},dataType:'json'});"
             "}"
             "setTimeout(function(){"
             f"  var e=document.getElementById('s{cur}'),p=document.getElementById('p');"
