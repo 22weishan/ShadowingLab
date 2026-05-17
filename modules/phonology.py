@@ -46,6 +46,64 @@ CARDS = {
         ),
         "theory": "Cognitive Load Theory — pre-marking reduces extraneous load during shadowing.",
     },
+    "nuclear": {
+        "tag": "nuclear",
+        "title_en": "Nuclear Stress",
+        "title_zh": "核心重音",
+        "icon": "★",
+        "what_en": (
+            "Every phrase or clause in English has exactly one syllable that carries the "
+            "greatest prominence — the loudest, longest, and most pitch-movement-rich point "
+            "in the tone unit. This is called the nuclear stress. It marks the most "
+            "informationally important word: what is new, contrasted, or being corrected. "
+            "The nuclear stress is the anchor of the entire phrase's pitch contour."
+        ),
+        "what_zh": (
+            "英语中每个短语或从句都有且只有一个音节承载最强的凸显——"
+            "这是语调单元中最响、最长、音调变化最大的点，称为核心重音。"
+            "它标记了信息上最重要的词：新信息、对比信息或被纠正的信息。"
+            "核心重音是整个短语音调轮廓的锚点。"
+        ),
+        "why_hard_en": (
+            "Mandarin does not have an equivalent phrase-level prominence system. "
+            "Emphasis in Mandarin is often expressed through lexical means (adding words "
+            "like 就是 or 是) rather than by shifting pitch prominence onto a single word. "
+            "As a result, Mandarin speakers often distribute stress evenly across a phrase, "
+            "or place it on the grammatically first content word — which frequently sounds "
+            "like the wrong word is being emphasised in English."
+        ),
+        "why_hard_zh": (
+            "普通话没有对应的短语级凸显系统。普通话中的强调通常通过词汇手段表达"
+            "（如添加「就是」或「是」），而不是将音调凸显移至某个特定词。"
+            "因此，普通话母语者往往将重音均匀分布在短语中，或放在第一个实词上——"
+            "这在英语中听起来常常像是强调了错误的词。"
+        ),
+        "examples": [
+            {"word": "She is a PROdigy",
+             "wrong": "SHE is a prodigy",
+             "note": "New info: the identity (prodigy) is the focus"},
+            {"word": "SHE is a prodigy",
+             "wrong": "she IS a prodigy",
+             "note": "Contrast: her, not someone else"},
+            {"word": "I said a BOOK, not a pen",
+             "wrong": "I said A book, not a pen",
+             "note": "Correction: the item type is the focus"},
+        ],
+        "tip_en": (
+            "Before shadowing, predict which word carries the nuclear stress in each sentence "
+            "and mark it with ★. Ask yourself: what is this sentence really about — what is "
+            "new or being contrasted? Then listen and check. When you shadow, consciously "
+            "give that word a noticeable pitch movement (a fall, rise, or fall-rise) and "
+            "compress everything around it."
+        ),
+        "tip_zh": (
+            "跟读前，预测每个句子中哪个词承载核心重音，并用★标注。"
+            "问自己：这句话真正在说什么——什么是新信息或被对比的内容？"
+            "然后听原声确认。跟读时，有意识地让那个词产生明显的音调变化"
+            "（降调、升调或升降调），并压缩周围的音节。"
+        ),
+        "theory": "Information structure theory — nuclear stress encodes focus, contrast, and given/new distinctions.",
+    },
     "link": {
         "tag": "link",
         "title_en": "Linking",
@@ -311,7 +369,7 @@ def phonology_page():
     st.title("📖 Phonology Guide / 语音指南")
     st.markdown(
         '<p class="muted" style="margin-top:-8px;margin-bottom:24px;">' +
-        'Seven phonological phenomena explained for Mandarin-speaking EFL learners. ' +
+        'Eight phonological phenomena explained for Mandarin-speaking EFL learners. ' +
         'Tap a card to expand it.' +
         '</p>', unsafe_allow_html=True
     )
@@ -325,7 +383,7 @@ def phonology_page():
     )
     filter_map = {
         "All":              list(CARDS.keys()),
-        "Stress & Rhythm":  ["stress", "rhythm"],
+        "Stress & Rhythm":  ["stress", "nuclear", "rhythm"],
         "Connected Speech": ["link", "weak", "omission", "insertion"],
         "Intonation":       ["intonation"],
     }

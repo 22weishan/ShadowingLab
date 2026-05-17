@@ -33,6 +33,8 @@ TAGS = {
                    "color": "#374151", "bg": "#F3F4F6", "border": "#D1D5DB"},
     "insertion":  {"label": "Insertion",      "zh": "多读",
                    "color": "#374151", "bg": "#F3F4F6", "border": "#D1D5DB"},
+    "nuclear":    {"label": "Nuclear Stress", "zh": "核心重音",
+                   "color": "#854F0B", "bg": "#FEF3C7", "border": "#FCD34D"},
 }
 
 
