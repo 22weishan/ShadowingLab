@@ -7,28 +7,107 @@ def landing_page():
         _landing()
 
 def _onboarding():
+    import streamlit.components.v1 as components
     step = st.session_state.get("onboarding_step", 0)
+
+    # Phase diagram HTML for card 4 — built as a plain string (no f-string needed)
+    _phase_diagram = (
+        '<div style="white-space:normal;text-align:center;">'
+        '<div style="display:flex;justify-content:center;align-items:flex-start;'
+        'gap:6px;margin-bottom:14px;flex-wrap:wrap;">'
+        '<div style="text-align:center;min-width:54px;">'
+        '<div style="font-size:1.5rem;">🎯</div>'
+        '<div style="font-size:.72rem;font-weight:700;color:#2563EB;margin-top:4px;">Select</div>'
+        '</div>'
+        '<div style="color:#D1D5DB;font-size:1.1rem;padding-top:12px;">›</div>'
+        '<div style="text-align:center;min-width:54px;">'
+        '<div style="font-size:1.5rem;">📖</div>'
+        '<div style="font-size:.72rem;font-weight:700;color:#2563EB;margin-top:4px;">Prepare</div>'
+        '</div>'
+        '<div style="color:#D1D5DB;font-size:1.1rem;padding-top:12px;">›</div>'
+        '<div style="text-align:center;min-width:54px;">'
+        '<div style="font-size:1.5rem;">🎙️</div>'
+        '<div style="font-size:.72rem;font-weight:700;color:#2563EB;margin-top:4px;">Shadow</div>'
+        '</div>'
+        '<div style="color:#D1D5DB;font-size:1.1rem;padding-top:12px;">›</div>'
+        '<div style="text-align:center;min-width:54px;">'
+        '<div style="font-size:1.5rem;">🔍</div>'
+        '<div style="font-size:.72rem;font-weight:700;color:#2563EB;margin-top:4px;">Compare</div>'
+        '</div>'
+        '<div style="color:#D1D5DB;font-size:1.1rem;padding-top:12px;">›</div>'
+        '<div style="text-align:center;min-width:54px;">'
+        '<div style="font-size:1.5rem;">📋</div>'
+        '<div style="font-size:.72rem;font-weight:700;color:#2563EB;margin-top:4px;">Capture</div>'
+        '</div>'
+        '</div>'
+        '<div style="font-size:.85rem;color:#374151;margin-top:6px;">Each session takes 20–30 minutes.</div>'
+        '<div style="font-size:.8rem;color:#9CA3AF;margin-top:3px;">建议每次20–30分钟。</div>'
+        '</div>'
+    )
+
     cards = [
-        {"icon":"🎧","en":"","zh":"","detail_en":"More than a practice tool — every design decision is grounded in teaching experience, empirical research, and learning science.","detail_zh":"不只是练习工具——每一个设计决策背后，都有教学经验、实证研究和学习科学的支撑。","btn":"Tell me more / 继续"},
-        {"icon":"🎧","en":"","zh":"","detail_en":"You can catch the words, but not the speed.\nYou want to speak, but think in Chinese first.\nThis isn't about effort — it's about how you've been trained.\n\nYears of multiple-choice listening have never taught you how to actually listen.","detail_zh":"听得懂单词，却跟不上语速。\n开口想说，脑子里还是中文在转。\n这不是努力不够——是训练方式出了问题。\n\n多年的选择题听力练习，从来没有教会你怎么听。","btn":"Tell me more / 继续"},
-        {"icon":"🔁","en":"","zh":"","detail_en":"Shadowing means repeating speech in real time, closely tracking a native speaker as you listen. It targets bottom-up listening processing directly — training automatic phoneme recognition, prosodic sensitivity, and connected speech perception at natural speed. Empirical research supports its effectiveness for improving both listening and speaking.","detail_zh":"Shadowing（影子跟读）：在听到声音的同时同步复述，紧跟母语者的节奏。这一方法直接作用于底层听力加工——帮助学习者在真实语速下自动识别音素、感知语调与连读。实证研究支持其对听力感知与口语流利度的改善效果。","btn":"How does it work? / 怎么用？"},
-        {"icon":"🗺️","en":"","zh":"","detail_en":"Each session is a complete practice cycle in five phases:\nSelect · Prepare · Shadow · Compare · Capture\nRecommended duration: 20–30 minutes.","detail_zh":"每次练习是一个完整的闭环，分为五个阶段：\nSelect · Prepare · Shadow · Compare · Capture\n建议每次20–30分钟。","btn":"Let us start / 开始练习"},
+        {"icon": "🎧", "en": "ShadowingLab", "zh": "",
+         "detail_en": "More than a practice tool — every design decision is grounded in teaching experience, empirical research, and learning science.",
+         "detail_zh": "不只是练习工具——每一个设计决策背后，都有教学经验、实证研究和学习科学的支撑。",
+         "btn": "Tell me more / 继续"},
+        {"icon": "🗣️", "en": "The real problem", "zh": "",
+         "detail_en": "You can catch the words, but not the speed.\nYou want to speak, but think in Chinese first.\nThis isn't about effort — it's about how you've been trained.\n\nYears of multiple-choice listening have never taught you how to actually listen.",
+         "detail_zh": "听得懂单词，却跟不上语速。\n开口想说，脑子里还是中文在转。\n这不是努力不够——是训练方式出了问题。\n\n多年的选择题听力练习，从来没有教会你怎么听。",
+         "btn": "Tell me more / 继续"},
+        {"icon": "🔁", "en": "Shadowing is the fix", "zh": "",
+         "detail_en": "Shadowing means repeating what you hear in real time. It trains your brain to decode fast native speech.",
+         "detail_zh": "跟读就是实时重复你听到的内容。它训练大脑解码快速的母语语音。",
+         "btn": "How does it work? / 怎么用？"},
+        {"icon": "🗺️", "en": "Five phases, one cycle", "zh": "",
+         "detail_en": _phase_diagram, "detail_zh": "",
+         "btn": "Let us start / 开始练习"},
     ]
     card = cards[step]
-    dots_html = "".join(f'<span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 4px;background:{"#2563EB" if i==step else "#D1D5DB"};"></span>' for i in range(len(cards)))
+
+    # Clickable dot navigator — plain string, no f-string, to avoid brace escaping
+    _dot_spans = "".join(
+        '<span onclick="selectStep(' + str(i) + ')" '
+        'style="width:10px;height:10px;border-radius:50%;display:inline-block;'
+        'margin:0 5px;background:' + ("#2563EB" if i == step else "#D1D5DB") + ';'
+        'cursor:pointer;transition:background .2s;"></span>'
+        for i in range(len(cards))
+    )
+    _dot_js = (
+        "(function(){"
+        "function post(t,e){window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:t},e),'*');}"
+        "post('streamlit:componentReady',{apiVersion:1});"
+        "post('streamlit:setFrameHeight',{height:28});"
+        "window.selectStep=function(i){post('streamlit:setComponentValue',{value:{step:i},dataType:'json'})};"
+        "})();"
+    )
+    _dot_html = (
+        '<!DOCTYPE html><html><body style="margin:0;background:transparent;text-align:center;padding:6px 0;">'
+        '<div>' + _dot_spans + '</div>'
+        '<script>' + _dot_js + '</script>'
+        '</body></html>'
+    )
+
     st.markdown(f"""
     <div style="max-width:560px;margin:80px auto 0;padding:0 16px;text-align:center;">
         <div style="font-size:3rem;margin-bottom:16px;">{card['icon']}</div>
         <div style="font-size:1.35rem;font-weight:700;color:#1A3A5C;line-height:1.4;margin-bottom:10px;">{card['en']}</div>
         <div style="font-size:1rem;color:#6B7280;margin-bottom:20px;">{card['zh']}</div>
-        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:20px 24px;margin-bottom:28px;text-align:left;white-space:pre-line;">
+        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:20px 24px;margin-bottom:16px;text-align:left;white-space:pre-line;">
             <div style="font-size:.9rem;color:#374151;line-height:1.7;">{card['detail_en']}</div>
             <div style="font-size:.84rem;color:#9CA3AF;margin-top:8px;line-height:1.65;">{card['detail_zh']}</div>
         </div>
-        <div style="margin-bottom:20px;">{dots_html}</div>
     </div>
     """, unsafe_allow_html=True)
-    col_skip, col_next = st.columns([1,1])
+
+    # Dots rendered as a component so clicks can navigate
+    dot_result = components.html(_dot_html, height=28, scrolling=False)
+    if isinstance(dot_result, dict) and "step" in dot_result:
+        new_step = int(dot_result["step"])
+        if new_step != step:
+            st.session_state.onboarding_step = new_step
+            st.rerun()
+
+    col_skip, col_next = st.columns([1, 1])
     with col_skip:
         if st.button("Skip intro / 跳过介绍", use_container_width=True, key="ob_skip"):
             st.session_state.seen_onboarding = True
@@ -36,8 +115,8 @@ def _onboarding():
             st.rerun()
     with col_next:
         if st.button(card["btn"], use_container_width=True, type="primary", key=f"ob_next_{step}"):
-            if step < len(cards)-1:
-                st.session_state.onboarding_step = step+1
+            if step < len(cards) - 1:
+                st.session_state.onboarding_step = step + 1
                 st.rerun()
             else:
                 st.session_state.seen_onboarding = True
