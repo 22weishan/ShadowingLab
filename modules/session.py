@@ -451,6 +451,113 @@ SL_setFrameHeight(document.body.scrollHeight||185);
 
 
 # ══════════════════════════════════════════════════════════════════
+# COACH AVATAR — per-phase tips popover
+# ══════════════════════════════════════════════════════════════════
+
+_COACH_TIPS = {
+    "select": [
+        {"icon": "🎯",
+         "en": "**Match your level, not your ego.** If you can understand 70–80% on first listen, it's a good fit. Too easy = no growth; too hard = frustration.",
+         "zh": "选接近但略超出舒适区的材料。能听懂七八成就合适——太简单没收获，太难只会沮丧。"},
+        {"icon": "⏱️",
+         "en": "**Shorter is better to start.** 30–60 seconds of dense native speech is plenty for one session.",
+         "zh": "篇幅短一点反而更好。30–60秒的真实语速材料，一次练习已经足够。"},
+        {"icon": "💡",
+         "en": "**Topic familiarity helps.** Familiar topics let you focus on *how* things are said, not just *what*.",
+         "zh": "熟悉的话题更有利。当你不需要分心理解内容，才能专注于「怎么说」。"},
+        {"icon": "🔁",
+         "en": "**Repeat materials.** Coming back to the same passage in a later session is not cheating — it's how fluency builds.",
+         "zh": "重复练同一篇没问题。流利度正是在反复中积累的。"},
+    ],
+    "prepare": [
+        {"icon": "📖",
+         "en": "**Read for meaning first.** Skim the text silently. If there are words you don't know, look them up now — not during shadowing.",
+         "zh": "先默读理解意思。碰到不认识的词，现在查，不要留到跟读时分心。"},
+        {"icon": "🔤",
+         "en": "**Study the annotations.** The stress marks (●), linking labels (⌢), weak-form labels, and intonation arrows (↘↗) tell you exactly where native speakers compress and connect speech.",
+         "zh": "注意语音标注。重音（●）、连读（⌢）、弱读和语调箭头（↘↗）标出了母语者压缩和连接语流的规律。",
+         "link_phonology": True},
+        {"icon": "🗣️",
+         "en": "**Mouth the words quietly.** Before the first listen, read the text aloud softly to yourself — it primes your articulators.",
+         "zh": "轻声试读一遍。在听之前先小声念一遍，帮助嘴巴提前热身。"},
+        {"icon": "🎵",
+         "en": "**Punctuation = rhythm cues.** Commas signal brief pauses; full stops signal falling intonation. These are your shadowing anchors.",
+         "zh": "标点是节奏信号。逗号意味着短暂停顿，句号意味着降调——这些都是跟读时的锚点。"},
+    ],
+    "shadow": [
+        {"icon": "⚡",
+         "en": "**Stay close, don't stop.** Aim to be less than half a second behind the speaker. If you miss a word, skip it and keep going — momentum matters more than completeness.",
+         "zh": "紧跟，别停。目标是落后说话者不超过半秒。漏了一个词就跳过——保持节奏比字字不漏更重要。"},
+        {"icon": "🎵",
+         "en": "**Shadow the music, not just the words.** Mimic the rises and falls in pitch, the speed changes, the pauses. The melody carries as much meaning as the words.",
+         "zh": "跟读「音乐」，不只是文字。模仿语调起伏、速度变化和停顿——旋律和词语同样重要。"},
+        {"icon": "😌",
+         "en": "**It's okay to sound strange.** Your voice will feel unfamiliar when you push toward native-speaker rhythm. That discomfort means you're working outside your current habits.",
+         "zh": "听起来奇怪是正常的。当你开始接近母语者节奏时，自己声音会觉得陌生——这种不适感说明你在突破习惯。"},
+        {"icon": "🔂",
+         "en": "**Repeat difficult sentences.** If a sentence felt wrong, replay it 2–3 times back to back before moving on.",
+         "zh": "难的句子多来几遍。一个句子觉得没跟好，就连续重复2–3次再继续。"},
+    ],
+    "compare": [
+        {"icon": "🥁",
+         "en": "**Listen for rhythm first, sounds second.** Did your stress land on the same syllables? Did your pauses match? Rhythm differences are usually bigger than vowel differences.",
+         "zh": "先听节奏，再听音。重音落在相同的音节上了吗？停顿一致吗？节奏上的差距往往比元音差距更大。"},
+        {"icon": "🔍",
+         "en": "**Find one moment to be curious about.** You don't need to fix everything — find the single most interesting gap between your voice and the original.",
+         "zh": "只找一个值得好奇的地方。不必面面俱到——找出你和原声之间最有趣的那个差距就够了。"},
+        {"icon": "🙂",
+         "en": "**Your accent is not the problem.** You're training your ear to perceive fast speech — the voice you use to do that is yours.",
+         "zh": "你的口音不是问题。目标不是听起来像说话者，而是训练耳朵感知快速语流。"},
+        {"icon": "⏯️",
+         "en": "**Use the timestamps.** If a specific moment surprised you, replay just that segment. Precision beats re-listening to the whole thing.",
+         "zh": "用时间轴定位。精准回听比整段重来效率更高。"},
+    ],
+    "capture": [
+        {"icon": "👁️",
+         "en": "**A notice is an observation, not a mistake.** Write down what you *noticed*, not what you think you *should* have done.",
+         "zh": "发现是观察，不是错误。记录你注意到的，而不是你认为应该做到的。"},
+        {"icon": "📌",
+         "en": "**Be specific.** Name the word, the feature, the moment. The more precise your notice, the more useful it is next session.",
+         "zh": "要具体。写清楚是哪个词、哪个语音现象、哪个时刻——越精准的记录，下次练习越有参考价值。"},
+        {"icon": "🏷️",
+         "en": "**Tag it.** Using consistent tags (stress / linking / weak form / intonation) lets you see patterns across sessions over time.",
+         "zh": "打好标签。用固定的分类来标记，方便日后发现跨课次的规律。"},
+        {"icon": "🎯",
+         "en": "**One session, one pattern.** If you notice the same thing three times in one session, write it once, clearly.",
+         "zh": "一次练习，找一个规律。同一个问题出现了三次，清晰地写一条就够了。"},
+    ],
+}
+
+
+def _coach_avatar(phase_key: str):
+    """💬 coach tip button, right-aligned, opens a popover with phase tips."""
+    tips = _COACH_TIPS.get(phase_key, [])
+    if not tips:
+        return
+    _, btn_col = st.columns([14, 1])
+    with btn_col:
+        with st.popover("💬", use_container_width=True):
+            st.markdown(
+                '<div style="font-size:.82rem;font-weight:700;color:#374151;margin-bottom:12px;">'
+                '💬 Coach tips / 练习提示</div>',
+                unsafe_allow_html=True
+            )
+            for i, tip in enumerate(tips):
+                st.markdown(f'{tip["icon"]} {tip["en"]}')
+                st.caption(tip["zh"])
+                if tip.get("link_phonology"):
+                    if st.button(
+                        "📖 Learn annotation symbols in Phonology Guide →",
+                        key=f"tip_phon_{phase_key}_{i}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.page = "phonology"
+                        st.rerun()
+                if i < len(tips) - 1:
+                    st.markdown("---")
+
+
+# ══════════════════════════════════════════════════════════════════
 # PHASE 1 — SELECT
 # ══════════════════════════════════════════════════════════════════
 
@@ -476,6 +583,7 @@ def _phase_select():
         </div>
         """, unsafe_allow_html=True)
 
+    _coach_avatar("select")
     st.markdown("### Choose a material / 选择练习材料")
 
     for mat in get_all_materials():
@@ -534,6 +642,7 @@ def _phase_prepare():
     _phase_header(2, "Prepare", "准备",
                   "#0EA5E9", "#E0F2FE",
                   "Listen once while reading. Mark any words you don't know.")
+    _coach_avatar("prepare")
 
     col_left, col_right = st.columns([1, 1.4])
 
@@ -989,6 +1098,7 @@ def _phase_shadow():
     _phase_header(3, "Shadow", "跟读",
                   "#7C3AED", "#F5F3FF",
                   "Shadow each sentence · 逐句跟读，再整段挑战")
+    _coach_avatar("shadow")
 
     tab_sent, tab_full = st.tabs(["🔤 Sentence by sentence / 逐句", "📄 Full passage / 整段"])
 
@@ -1235,6 +1345,7 @@ def _phase_compare():
     _phase_header(4, "Compare", "对比",
                   "#DC2626", "#FFF1F2",
                   "Listen to both recordings. Use the cues to focus your attention.")
+    _coach_avatar("compare")
 
     # ── pick which recording to compare ──────────────────────────
     rec_options = {}
@@ -1475,6 +1586,7 @@ def _phase_capture():
     _phase_header(5, "Capture", "记录与反思",
                   "#059669", "#ECFDF5",
                   "Reflect on this session, then finish.")
+    _coach_avatar("capture")
 
     # ── commit pending notices ────────────────────────────────────
     pending = st.session_state.pop("_pending_notices", [])
