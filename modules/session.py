@@ -580,16 +580,16 @@ def _phase_prepare():
             '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.72rem;'
             'color:#6B7280;margin-bottom:10px;line-height:1.8;">'
             '<span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;'
-            'background:#0C447C;vertical-align:middle;margin-right:3px;"></span>stress</span>'
-            '<span style="color:#854F0B;">★ nuclear</span>'
-            '<span style="color:#993C1D;">↘ fall &nbsp; </span>'
-            '<span style="color:#0F6E56;">↗ rise</span>'
+            'background:#0C447C;vertical-align:middle;margin-right:3px;"></span>stress 重音</span>'
+            '<span style="color:#854F0B;">★ nuclear 核心重音</span>'
+            '<span style="color:#993C1D;">↘ fall 降调</span>'
+            '<span style="color:#0F6E56;">↗ rise 升调</span>'
             '<span style="background:#DBEAFE;color:#185FA5;border-radius:3px;'
-            'padding:1px 4px;">⌢ link</span>'
+            'padding:1px 4px;">⌢ link 连读</span>'
             '<span style="background:#F1EFE8;color:#5F5E5A;border-radius:3px;'
-            'padding:1px 4px;font-style:italic;">wk weak</span>'
+            'padding:1px 4px;font-style:italic;">wk weak 弱读</span>'
             '<span style="color:#9CA3AF;font-size:.68rem;">'
-            '↑ suprasegmental &nbsp;|&nbsp; ↓ segmental</span>'
+            '↑ suprasegmental 超音段 &nbsp;|&nbsp; ↓ segmental 音段</span>'
             '</div>',
             unsafe_allow_html=True
         )
