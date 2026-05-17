@@ -1,4 +1,12 @@
+import os
 import streamlit as st
+import streamlit.components.v1 as components
+
+_DOTS_COMPONENT_PATH = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "components", "onboarding_dots"
+))
+_dots_component = components.declare_component("onboarding_dots", path=_DOTS_COMPONENT_PATH)
 
 def landing_page():
     if not st.session_state.get("seen_onboarding"):
@@ -7,7 +15,6 @@ def landing_page():
         _landing()
 
 def _onboarding():
-    import streamlit.components.v1 as components
     step = st.session_state.get("onboarding_step", 0)
 
     # Phase diagram HTML for card 4 — built as a plain string (no f-string needed)
@@ -64,29 +71,6 @@ def _onboarding():
     ]
     card = cards[step]
 
-    # Clickable dot navigator — plain string, no f-string, to avoid brace escaping
-    _dot_spans = "".join(
-        '<span onclick="selectStep(' + str(i) + ')" '
-        'style="width:10px;height:10px;border-radius:50%;display:inline-block;'
-        'margin:0 5px;background:' + ("#2563EB" if i == step else "#D1D5DB") + ';'
-        'cursor:pointer;transition:background .2s;"></span>'
-        for i in range(len(cards))
-    )
-    _dot_js = (
-        "(function(){"
-        "function post(t,e){window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:t},e),'*');}"
-        "post('streamlit:componentReady',{apiVersion:1});"
-        "post('streamlit:setFrameHeight',{height:28});"
-        "window.selectStep=function(i){post('streamlit:setComponentValue',{value:{step:i},dataType:'json'})};"
-        "})();"
-    )
-    _dot_html = (
-        '<!DOCTYPE html><html><body style="margin:0;background:transparent;text-align:center;padding:6px 0;">'
-        '<div>' + _dot_spans + '</div>'
-        '<script>' + _dot_js + '</script>'
-        '</body></html>'
-    )
-
     st.markdown(f"""
     <div style="max-width:560px;margin:80px auto 0;padding:0 16px;text-align:center;">
         <div style="font-size:3rem;margin-bottom:16px;">{card['icon']}</div>
@@ -99,8 +83,8 @@ def _onboarding():
     </div>
     """, unsafe_allow_html=True)
 
-    # Dots rendered as a component so clicks can navigate
-    dot_result = components.html(_dot_html, height=28, scrolling=False)
+    # Clickable dots via declare_component — stable key means value persists across reruns
+    dot_result = _dots_component(current_step=step, total=len(cards), key="ob_dots")
     if isinstance(dot_result, dict) and "step" in dot_result:
         new_step = int(dot_result["step"])
         if new_step != step:
