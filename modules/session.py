@@ -1335,12 +1335,11 @@ def _phase_shadow():
                 st.rerun()
         else:
             full_takes_done = 1 if st.session_state.full_recording else 0
-            result = _js_recorder_component(
-                f"full_{mat['id']}_take{full_takes_done}",
-                "Full passage shadowing",
-                "整段跟读录音",
+            result = _sentence_recorder_func(
+                seg_num=0,
+                key=f"full_{mat['id']}_take{full_takes_done}",
             )
-            if result:
+            if isinstance(result, dict) and result.get("type") == "rec":
                 st.session_state.full_recording = result["value"]
                 st.rerun()
 
