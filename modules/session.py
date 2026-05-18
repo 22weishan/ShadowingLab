@@ -1492,7 +1492,7 @@ def _phase_compare():
         for col, k in zip(cols, row):
             v = TAGS[k]
             is_sel = k in sel_tags
-            lbl = ("✓ " if is_sel else "") + v["zh"]
+            lbl = ("✓ " if is_sel else "") + v["label"] + " / " + v["zh"]
             if col.button(lbl, key=f"p4_tag_{k}",
                           type="primary" if is_sel else "secondary",
                           use_container_width=True):
