@@ -1,9 +1,10 @@
 """
-phonology.py  —  Phonology Guide: 7 interactive concept cards
+phonology.py  —  Phonology Guide: prosody cards + vowel & consonant reference
 """
 
 import streamlit as st
 from modules.materials import TAGS
+from modules.phoneme_data import VOWELS, CONSONANTS, get_sound
 
 CARDS = {
     "stress": {
@@ -368,12 +369,33 @@ CARDS = {
 def phonology_page():
     st.title("📖 Phonology Guide / 语音指南")
     st.markdown(
-        '<p class="muted" style="margin-top:-8px;margin-bottom:24px;">' +
-        'Eight phonological phenomena explained for Mandarin-speaking EFL learners. ' +
-        'Tap a card to expand it.' +
+        '<p class="muted" style="margin-top:-8px;margin-bottom:20px;">'
+        'Complete phonological reference for Mandarin-speaking EFL learners. / '
+        '面向普通话母语者的英语语音完整参考指南。'
         '</p>', unsafe_allow_html=True
     )
 
+    tab_prosody, tab_vowels, tab_consonants = st.tabs([
+        "🎵 Prosody / 韵律",
+        "🔵 Vowels / 元音",
+        "🔴 Consonants / 辅音",
+    ])
+
+    with tab_prosody:
+        _tab_prosody()
+    with tab_vowels:
+        _tab_vowels()
+    with tab_consonants:
+        _tab_consonants()
+
+
+def _tab_prosody():
+    st.markdown(
+        '<p style="font-size:.86rem;color:#6B7280;margin-bottom:16px;">'
+        'Eight suprasegmental phenomena: stress, rhythm, intonation, and connected speech. / '
+        '八个超音段现象：重音、节奏、语调和连读。</p>',
+        unsafe_allow_html=True,
+    )
     filter_tab = st.radio(
         "Show",
         ["All", "Stress & Rhythm", "Connected Speech", "Intonation"],
@@ -391,6 +413,300 @@ def phonology_page():
     for tag_key in visible:
         _render_full_card(CARDS[tag_key])
 
+
+# ── Vowel tab ─────────────────────────────────────────────────────────────────
+
+# Layout: symbol → (row_order, col_order) for the vowel grid
+_VOWEL_GRID = [
+    # row label,  symbols in order
+    ("Close",     ["iː", "ɪ", None, None, "ʊ", "uː"]),
+    ("Mid",       ["e",  None, "ɜː", "ə", None, "ɔː"]),
+    ("Open-mid",  ["æ",  None, "ʌ",  None, None, None]),
+    ("Open",      [None, None, None, None, "ɑː", None]),
+    ("Diphthongs",["eɪ", "aɪ", "ɔɪ", "aʊ", "oʊ", None]),
+]
+_VOWEL_COL_LABELS = ["Front", "Front", "Central", "Central", "Back", "Back"]
+
+_CONSONANT_GRID = {
+    "Stop":        ["p","b","t","d","k","g"],
+    "Fricative":   ["f","v","θ","ð","s","z","ʃ","ʒ","h"],
+    "Affricate":   ["tʃ","dʒ"],
+    "Nasal":       ["m","n","ŋ"],
+    "Approximant": ["l","r","w","j"],
+}
+
+_DIFF_COLORS = {
+    1: ("#065F46", "#D1FAE5"),
+    2: ("#1D4ED8", "#DBEAFE"),
+    3: ("#92400E", "#FFFBEB"),
+    4: ("#B54F1A", "#FEF3C7"),
+    5: ("#991B1B", "#FEE2E2"),
+}
+_DIFF_LABELS = {1:"Easy", 2:"Moderate", 3:"Hard", 4:"Very hard", 5:"Critical"}
+
+
+def _difficulty_badge(n: int) -> str:
+    fg, bg = _DIFF_COLORS.get(n, ("#374151","#F3F4F6"))
+    label  = _DIFF_LABELS.get(n, "")
+    dots   = "●" * n + "○" * (5 - n)
+    return (
+        f'<span style="background:{bg};color:{fg};font-size:.72rem;font-weight:700;'
+        f'border-radius:4px;padding:2px 8px;">{dots} {label}</span>'
+    )
+
+
+def _render_sound_card(sound: dict):
+    """Detail card shown when a phoneme is selected in either chart."""
+    diff_html = _difficulty_badge(sound["difficulty"])
+    is_vowel  = "manner" not in sound
+
+    # Header
+    type_label = sound.get("type","").replace("_"," ").title() if is_vowel else (
+        f'{sound["manner"].title()} · {"Voiced" if sound["voiced"] else "Voiceless"} · {sound["place"].replace("-"," ").title()}'
+    )
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:16px;'
+        f'border:1px solid #E5E7EB;border-radius:12px;padding:16px 20px;'
+        f'background:#F9FAFB;margin-bottom:14px;">'
+        f'<div style="font-size:2.6rem;font-weight:800;color:#1A3A5C;'
+        f'min-width:56px;text-align:center;font-family:serif;">'
+        f'{sound["ipa"]}</div>'
+        f'<div>'
+        f'<div style="font-size:.72rem;color:#9CA3AF;margin-bottom:3px;">{type_label}</div>'
+        f'<div style="font-size:1rem;font-weight:700;color:#1A3A5C;margin-bottom:4px;">'
+        f'as in <em>{sound["label"]}</em></div>'
+        f'{diff_html}'
+        f'<span style="font-size:.72rem;color:#9CA3AF;margin-left:6px;">'
+        f'difficulty for Mandarin speakers / 对普通话母语者的难度</span>'
+        f'</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    col_l, col_r = st.columns([3, 2])
+
+    with col_l:
+        # Articulation
+        st.markdown(
+            '<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
+            'letter-spacing:.05em;color:#2563EB;margin-bottom:6px;">How to make it / 怎么发</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div style="background:#EFF6FF;border-left:3px solid #2563EB;border-radius:6px;'
+            f'padding:10px 14px;font-size:.85rem;color:#374151;line-height:1.7;margin-bottom:4px;">'
+            f'{sound["artic_en"]}</div>'
+            f'<div style="font-size:.8rem;color:#9CA3AF;line-height:1.6;padding:0 4px;margin-bottom:10px;">'
+            f'{sound["artic_zh"]}</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Why hard
+        st.markdown(
+            '<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
+            'letter-spacing:.05em;color:#92400E;margin-bottom:6px;">'
+            'Why hard for Mandarin speakers / 普通话母语者的难点</div>',
+            unsafe_allow_html=True,
+        )
+        sub = sound.get("substitution","")
+        sub_note = sound.get("sub_note_en","")
+        sub_zh   = sound.get("sub_note_zh","")
+        st.markdown(
+            f'<div style="background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:6px;'
+            f'padding:10px 14px;margin-bottom:4px;">'
+            f'<div style="font-size:.85rem;color:#374151;line-height:1.7;margin-bottom:6px;">'
+            f'{sound["hard_en"]}</div>'
+            f'<div style="font-size:.8rem;color:#9CA3AF;line-height:1.6;margin-bottom:6px;">'
+            f'{sound["hard_zh"]}</div>'
+            f'<div style="font-size:.78rem;font-weight:700;color:#92400E;margin-bottom:2px;">'
+            f'Common substitution / 常见替代音: '
+            f'<span style="font-family:serif;">{sub}</span></div>'
+            f'<div style="font-size:.78rem;color:#92400E;">{sub_note}</div>'
+            f'<div style="font-size:.75rem;color:#B45309;">{sub_zh}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col_r:
+        # Minimal pairs
+        pairs = sound.get("pairs", [])
+        if pairs:
+            st.markdown(
+                '<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
+                'letter-spacing:.05em;color:#0F6E56;margin-bottom:6px;">Minimal pairs / 最小对</div>',
+                unsafe_allow_html=True,
+            )
+            pair_html = ""
+            for pair in pairs:
+                if isinstance(pair, tuple) and len(pair) == 2:
+                    a, b = pair
+                    if b == "—":
+                        pair_html += (
+                            f'<div style="font-size:.85rem;padding:4px 0;border-bottom:1px solid #F3F4F6;">'
+                            f'<span style="font-weight:600;color:#1A3A5C;">{a}</span></div>'
+                        )
+                    else:
+                        pair_html += (
+                            f'<div style="font-size:.85rem;padding:4px 0;border-bottom:1px solid #F3F4F6;">'
+                            f'<span style="font-weight:600;color:#1A3A5C;">{a}</span>'
+                            f'<span style="color:#D1D5DB;margin:0 8px;">/</span>'
+                            f'<span style="color:#6B7280;">{b}</span></div>'
+                        )
+            st.markdown(
+                f'<div style="background:#E8F5F3;border-radius:8px;padding:8px 12px;margin-bottom:10px;">'
+                f'{pair_html}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # Practice sentences
+        practice = sound.get("practice", [])
+        if practice:
+            st.markdown(
+                '<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
+                'letter-spacing:.05em;color:#7C3AED;margin-bottom:6px;">'
+                'Shadowing practice / 跟读练习句</div>',
+                unsafe_allow_html=True,
+            )
+            for sent in practice:
+                st.markdown(
+                    f'<div style="background:#F5F3FF;border-left:3px solid #7C3AED;'
+                    f'border-radius:6px;padding:8px 12px;margin-bottom:6px;'
+                    f'font-size:.86rem;color:#1A3A5C;font-style:italic;line-height:1.6;">'
+                    f'"{sent}"</div>',
+                    unsafe_allow_html=True,
+                )
+
+
+def _tab_vowels():
+    # Init session state
+    if "phon_vowel_sel" not in st.session_state:
+        st.session_state["phon_vowel_sel"] = "iː"
+
+    sel = st.session_state["phon_vowel_sel"]
+
+    st.markdown(
+        '<p style="font-size:.86rem;color:#6B7280;margin-bottom:14px;">'
+        '16 vowel sounds (11 monophthongs + 5 diphthongs). '
+        'Click any symbol to see details. / '
+        '16个元音（11个单元音 + 5个双元音）。点击任意符号查看详情。</p>',
+        unsafe_allow_html=True,
+    )
+
+    # Column headers
+    header_html = (
+        '<div style="display:grid;grid-template-columns:70px repeat(6,1fr);'
+        'gap:4px;margin-bottom:4px;">'
+        '<div style="font-size:.65rem;color:#D1D5DB;"></div>'
+    )
+    shown = []
+    for lbl in _VOWEL_COL_LABELS:
+        if lbl not in shown:
+            header_html += (
+                f'<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;'
+                f'letter-spacing:.04em;color:#9CA3AF;text-align:center;">{lbl}</div>'
+            )
+            shown.append(lbl)
+        else:
+            header_html += '<div></div>'
+    header_html += '</div>'
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    # Vowel grid — one row per height level, with Streamlit buttons
+    for row_label, symbols in _VOWEL_GRID:
+        row_cols = st.columns([1.2] + [1]*6)
+        with row_cols[0]:
+            st.markdown(
+                f'<div style="font-size:.7rem;color:#9CA3AF;text-align:right;'
+                f'padding-top:10px;padding-right:4px;">{row_label}</div>',
+                unsafe_allow_html=True,
+            )
+        for i, sym in enumerate(symbols):
+            with row_cols[i + 1]:
+                if sym is None:
+                    st.markdown(
+                        '<div style="height:36px;"></div>', unsafe_allow_html=True
+                    )
+                    continue
+                is_sel = sym == sel
+                btn_type = "primary" if is_sel else "secondary"
+                if st.button(
+                    sym,
+                    key=f"vowel_btn_{sym}",
+                    use_container_width=True,
+                    type=btn_type,
+                ):
+                    st.session_state["phon_vowel_sel"] = sym
+                    st.rerun()
+
+    st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+    st.markdown("---")
+
+    sound = get_sound(sel)
+    if sound:
+        _render_sound_card(sound)
+
+
+def _tab_consonants():
+    if "phon_cons_sel" not in st.session_state:
+        st.session_state["phon_cons_sel"] = "θ"
+
+    sel = st.session_state["phon_cons_sel"]
+
+    st.markdown(
+        '<p style="font-size:.86rem;color:#6B7280;margin-bottom:14px;">'
+        '24 consonant sounds organised by manner of articulation. '
+        'Click any symbol to see details. / '
+        '24个辅音，按发音方式排列。点击任意符号查看详情。</p>',
+        unsafe_allow_html=True,
+    )
+
+    for manner, symbols in _CONSONANT_GRID.items():
+        row_cols = st.columns([1.5] + [1]*len(symbols))
+        with row_cols[0]:
+            st.markdown(
+                f'<div style="font-size:.72rem;font-weight:700;color:#9CA3AF;'
+                f'text-align:right;padding-top:10px;padding-right:6px;">{manner}</div>',
+                unsafe_allow_html=True,
+            )
+        for i, sym in enumerate(symbols):
+            with row_cols[i + 1]:
+                sound = get_sound(sym)
+                diff  = sound["difficulty"] if sound else 1
+                fg, _ = _DIFF_COLORS.get(diff, ("#374151","#F9FAFB"))
+                is_sel = sym == sel
+                btn_type = "primary" if is_sel else "secondary"
+                if st.button(
+                    sym,
+                    key=f"cons_btn_{sym}",
+                    use_container_width=True,
+                    type=btn_type,
+                ):
+                    st.session_state["phon_cons_sel"] = sym
+                    st.rerun()
+
+    # Difficulty legend
+    st.markdown(
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:4px;">'
+        + "".join(
+            f'<span style="font-size:.7rem;background:{bg};color:{fg};'
+            f'border-radius:3px;padding:2px 7px;font-weight:600;">'
+            f'{"●"*n}{"○"*(5-n)} {lbl}</span>'
+            for n, (fg, bg) in _DIFF_COLORS.items()
+            for lbl in [_DIFF_LABELS[n]]
+        )
+        + "<span style='font-size:.7rem;color:#9CA3AF;padding-top:3px;'>"
+        " ← Mandarin-speaker difficulty / 普通话母语者难度</span>"
+        + '</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("---")
+
+    sound = get_sound(sel)
+    if sound:
+        _render_sound_card(sound)
+
+
+# ── Prosody cards ─────────────────────────────────────────────────────────────
 
 def _render_full_card(card: dict):
     tag   = TAGS.get(card["tag"], {})
