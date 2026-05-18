@@ -455,6 +455,60 @@ def _difficulty_badge(n: int) -> str:
     )
 
 
+def _tts_button_html(text: str, label: str = "▶ Play", rate: float = 0.85,
+                     color: str = "#7C3AED", height: int = 36) -> str:
+    """Return an HTML snippet (for st.components.v1.html) with a single TTS button."""
+    safe_text = text.replace("'", "\\'").replace('"', '&quot;')
+    return f"""
+<div style="margin:4px 0;">
+  <button onclick="
+    var u=new SpeechSynthesisUtterance('{safe_text}');
+    u.lang='en-US';u.rate={rate};
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  " style="
+    background:{color};color:#fff;border:none;border-radius:6px;
+    padding:4px 12px;font-size:.78rem;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;
+  ">{label}</button>
+</div>
+"""
+
+
+def _tts_sentence_html(sentences: list, rate: float = 0.85) -> str:
+    """Return a styled HTML block with TTS play buttons for each practice sentence."""
+    import html as html_mod
+    blocks = ""
+    for sent in sentences:
+        safe = sent.replace("'", "\\'").replace('"', '&quot;')
+        display = html_mod.escape(sent)
+        blocks += f"""
+<div style="background:#F5F3FF;border-left:3px solid #7C3AED;
+  border-radius:6px;padding:8px 12px;margin-bottom:8px;">
+  <div style="font-size:.86rem;color:#1A3A5C;font-style:italic;
+    line-height:1.6;margin-bottom:4px;">&ldquo;{display}&rdquo;</div>
+  <button onclick="
+    var u=new SpeechSynthesisUtterance('{safe}');
+    u.lang='en-US';u.rate={rate};
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  " style="
+    background:#7C3AED;color:#fff;border:none;border-radius:5px;
+    padding:3px 10px;font-size:.75rem;cursor:pointer;
+  ">▶ Play</button>
+</div>
+"""
+    return f"""
+<div style="margin:0;">
+  <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.05em;color:#7C3AED;margin-bottom:6px;">
+    Shadowing practice / 跟读练习句
+  </div>
+  {blocks}
+</div>
+"""
+
+
 def _render_sound_card(sound: dict):
     """Detail card shown when a phoneme is selected in either chart."""
     diff_html = _difficulty_badge(sound["difficulty"])
@@ -480,6 +534,15 @@ def _render_sound_card(sound: dict):
         f'difficulty for Mandarin speakers / 对普通话母语者的难度</span>'
         f'</div></div>',
         unsafe_allow_html=True,
+    )
+
+    # TTS button for example word
+    import streamlit.components.v1 as components
+    example_word = sound["label"].split()[0]  # e.g. "fleece" from "fleece / 绵羊"
+    components.html(
+        _tts_button_html(example_word, label=f"▶ Hear  {example_word}", rate=0.7,
+                         color="#1A3A5C"),
+        height=40,
     )
 
     col_l, col_r = st.columns([3, 2])
@@ -557,23 +620,14 @@ def _render_sound_card(sound: dict):
                 unsafe_allow_html=True,
             )
 
-        # Practice sentences
+        # Practice sentences with TTS
         practice = sound.get("practice", [])
         if practice:
-            st.markdown(
-                '<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
-                'letter-spacing:.05em;color:#7C3AED;margin-bottom:6px;">'
-                'Shadowing practice / 跟读练习句</div>',
-                unsafe_allow_html=True,
+            import streamlit.components.v1 as components
+            components.html(
+                _tts_sentence_html(practice, rate=0.85),
+                height=40 + len(practice) * 82,
             )
-            for sent in practice:
-                st.markdown(
-                    f'<div style="background:#F5F3FF;border-left:3px solid #7C3AED;'
-                    f'border-radius:6px;padding:8px 12px;margin-bottom:6px;'
-                    f'font-size:.86rem;color:#1A3A5C;font-style:italic;line-height:1.6;">'
-                    f'"{sent}"</div>',
-                    unsafe_allow_html=True,
-                )
 
 
 def _tab_vowels():
