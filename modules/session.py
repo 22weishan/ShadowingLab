@@ -702,6 +702,15 @@ def _phase_prepare():
             '</div>',
             unsafe_allow_html=True
         )
+        st.markdown(
+            '<div style="font-size:.75rem;color:#6B7280;background:#FFF7ED;'
+            'border-left:3px solid #F59E0B;border-radius:4px;'
+            'padding:6px 10px;margin-bottom:10px;">'
+            '💡 Study these marks now — Phase 3 shows plain text by default so you focus on listening.<br>'
+            '现在熟悉这些标注，第三阶段默认隐藏注释，让你专注于听觉。'
+            '</div>',
+            unsafe_allow_html=True
+        )
         for seg in segs:
             ann_html = _render_word_annotations(seg)
             st.markdown(ann_html, unsafe_allow_html=True)
@@ -1127,28 +1136,21 @@ def _phase_shadow():
         else:
             timestamps = get_timestamps_for_material(mat)
 
-        # annotation note
-        st.markdown(
-            '<div style="background:#F0F4FF;border-left:3px solid #2563EB;border-radius:6px;'
-            'padding:8px 14px;margin-bottom:10px;font-size:.82rem;color:#374151;line-height:1.6;">'
-            'These annotations highlight features that affect how clearly English is understood — '
-            'stress, rhythm, linking, and intonation. You don\'t need to replicate them perfectly. '
-            'Focus on noticing.'
-            '</div>',
-            unsafe_allow_html=True
-        )
+        # annotation toggle
+        show_ann = st.session_state.get("shadow_show_ann", False)
+        if st.button(
+            "🏷 Hide annotations / 隐藏注释" if show_ann else "🏷 Show annotations / 显示注释",
+            key="shadow_ann_toggle",
+        ):
+            st.session_state.shadow_show_ann = not show_ann; st.rerun()
 
-        # ── TEXT PANEL (full width, stars clickable inside bubbles) ──
-        # Star clicks use postMessage → caught by a hidden st.text_input trick:
-        # we pass clicked index via query param in URL, detected on rerun.
-        # Simpler: render bookmark buttons HIDDEN (height:0) alongside panel.
-
+        # ── TEXT PANEL ───────────────────────────────────────────────
         rows_html = []
         for i, seg_i in enumerate(segs):
             is_cur   = (i == cur)
             is_done  = (i in st.session_state.visited_segments)
             is_saved = (i in st.session_state.saved_sentences)
-            ann_html = _render_word_annotations(seg_i)
+            ann_html = _render_word_annotations(seg_i, show_annotations=show_ann)
             star_c   = "#F59E0B" if is_saved else "#CBD5E1"
             star_ch  = "&#9733;" if is_saved else "&#9734;"
             star_span = (
