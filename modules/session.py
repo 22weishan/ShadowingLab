@@ -1400,155 +1400,127 @@ def _phase_compare():
                   "Listen to both recordings. Use the cues to focus your attention.")
     _coach_avatar("compare")
 
-    # ── pick which recording to compare ──────────────────────────
-    rec_options = {}
-    if st.session_state.full_recording:
-        rec_options["Full passage recording"] = {
-            "b64": st.session_state.full_recording, "type": "full"
-        }
-    for idx, b64 in sorted(st.session_state.recordings_by_segment.items()):
-        rec_options[f"Sentence {idx+1}: {segs[idx]['text'][:50]}…"] = {
-            "b64": b64, "type": "sentence", "seg_idx": idx
-        }
+    # ── Auto-select recording ─────────────────────────────────────
+    full_b64 = st.session_state.full_recording
+    sent_recs = st.session_state.recordings_by_segment
 
-    if not rec_options:
+    if not full_b64 and not sent_recs:
         st.info("No recordings found. Go back to Phase 3 to record your shadowing.")
         if st.button("← Back to Shadow"):
             advance_phase("shadow"); st.rerun()
         return
 
-    chosen_label = st.selectbox(
-        "Select recording to compare / 选择要对比的录音",
-        list(rec_options.keys()),
-        label_visibility="visible", key="cmp_sel"
-    )
-    chosen_rec = rec_options[chosen_label]
+    if full_b64:
+        rec_b64    = full_b64
+        rec_format = "audio/webm"
+    else:
+        first_key  = sorted(sent_recs)[0]
+        rec_b64    = sent_recs[first_key]
+        rec_format = "audio/webm"
+        st.info(
+            "No full-passage recording found — comparing your first sentence recording. "
+            "Try **Flow mode** in Phase 3 to record the whole passage. / "
+            "未找到整段录音，正在对比第一句。建议在第三阶段使用 Flow 模式录制整段。"
+        )
 
     st.markdown("---")
 
-    # ── side by side players ──────────────────────────────────────
+    # ── Side-by-side players ──────────────────────────────────────
     col_orig, col_rec = st.columns(2)
     with col_orig:
-        st.markdown("""
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;
-                    padding:14px 16px;margin-bottom:8px;">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:.05em;color:#2563EB;margin-bottom:4px;">
-                🎵 Original / 原音
-            </div>
-            <div style="font-size:.85rem;font-weight:600;color:#1E3A5F;">Native Speaker</div>
-        </div>
-        """, unsafe_allow_html=True)
-        audio_b64 = _load_audio_b64(mat["audio_path"])
-        if audio_b64:
-            st.audio(base64.b64decode(audio_b64), format="audio/mp3")
+        st.markdown(
+            '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;'
+            'padding:14px 16px;margin-bottom:8px;">'
+            '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;'
+            'letter-spacing:.05em;color:#2563EB;margin-bottom:4px;">🎵 Original / 原音</div>'
+            '<div style="font-size:.85rem;font-weight:600;color:#1E3A5F;">Native Speaker</div>'
+            '</div>', unsafe_allow_html=True)
+        orig_b64 = _load_audio_b64(mat["audio_path"])
+        if orig_b64:
+            st.audio(base64.b64decode(orig_b64), format="audio/mp3")
         else:
             st.warning("Original audio not found.")
 
     with col_rec:
-        st.markdown("""
-        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;
-                    padding:14px 16px;margin-bottom:8px;">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:.05em;color:#059669;margin-bottom:4px;">
-                🎙️ Your Recording / 你的录音
-            </div>
-            <div style="font-size:.85rem;font-weight:600;color:#064E3B;">Your Shadowing</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.audio(base64.b64decode(chosen_rec["b64"]), format="audio/webm")
+        st.markdown(
+            '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;'
+            'padding:14px 16px;margin-bottom:8px;">'
+            '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;'
+            'letter-spacing:.05em;color:#059669;margin-bottom:4px;">🎙️ Your Recording / 你的录音</div>'
+            '<div style="font-size:.85rem;font-weight:600;color:#064E3B;">Your Shadowing</div>'
+            '</div>', unsafe_allow_html=True)
+        st.audio(base64.b64decode(rec_b64), format=rec_format)
 
-    # ── listening checklist ───────────────────────────────────────
+    # ── Listening checklist ───────────────────────────────────────
     st.markdown("---")
     st.markdown("**🧭 What to listen for / 对比时关注**")
     cc1, cc2, cc3 = st.columns(3)
     for col, icon, title, detail, detail_zh in [
-        (cc1, "💥", "Stress", "Which syllables are stressed differently?", "哪些音节重音不同？"),
-        (cc2, "〰️", "Intonation", "Does your pitch rise/fall match?", "升降调是否一致？"),
-        (cc3, "🔗", "Linking", "Are word boundaries blended correctly?", "词语边界连读是否正确？"),
+        (cc1, "💥", "Stress & Rhythm", "Do stress patterns and overall rhythm match?", "重音位置和整体节奏是否一致？"),
+        (cc2, "〰️", "Intonation", "Do your pitch contours match the original?", "语调升降是否与原音一致？"),
+        (cc3, "🔗", "Linking & Sounds", "Are sounds connected smoothly? Any vowel or consonant differences?", "连读是否流畅？元音辅音有差异吗？"),
     ]:
         with col:
-            st.markdown(f"""
-            <div class="sl-surface" style="font-size:.82rem;">
-                <strong>{icon} {title}</strong><br>
-                {detail}<br>
-                <span class="muted">{detail_zh}</span>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="sl-surface" style="font-size:.82rem;">'
+                f'<strong>{icon} {title}</strong><br>{detail}<br>'
+                f'<span class="muted">{detail_zh}</span></div>',
+                unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # ── per-sentence notice input ─────────────────────────────────
+    # ── Notice input ──────────────────────────────────────────────
     st.markdown("**📝 Notice Input / 记录你注意到的**")
     st.markdown(
         '<div class="caption-note">'
-        'For each sentence below, write what you noticed after listening to both recordings. '
-        'Be specific — describe the exact difference you heard.<br>'
-        '对于下面的每个句子，听完两段录音后记录你注意到的差异。尽量具体描述你听到的不同之处。'
+        'After listening to both recordings, note any differences you heard — '
+        'stress, rhythm, linking, vowel/consonant sounds, intonation, or anything else. '
+        'Select one or more tags, then describe what you noticed.<br>'
+        '对比两段录音后，记录你听到的差异——重音、节奏、连读、元音/辅音、语调等。'
+        '选择标签后用文字具体描述。'
         '</div>', unsafe_allow_html=True
     )
 
-    # Always show notice inputs for every sentence that has a recording.
-    # (If no sentences were recorded, fall back to the full segs list.)
-    recorded_indices = sorted(st.session_state.recordings_by_segment.keys())
-    if recorded_indices:
-        target_segs = [segs[i] for i in recorded_indices]
-    else:
-        target_segs = segs
+    # Tag chips
+    if "p4_notice_tags" not in st.session_state:
+        st.session_state.p4_notice_tags = set()
+    sel_tags = st.session_state.p4_notice_tags
+    tag_keys = list(TAGS.keys())
+    for row_start in range(0, len(tag_keys), 5):
+        row = tag_keys[row_start:row_start + 5]
+        cols = st.columns(len(row))
+        for col, k in zip(cols, row):
+            v = TAGS[k]
+            is_sel = k in sel_tags
+            lbl = ("✓ " if is_sel else "") + v["zh"]
+            if col.button(lbl, key=f"p4_tag_{k}",
+                          type="primary" if is_sel else "secondary",
+                          use_container_width=True):
+                if is_sel:
+                    sel_tags.discard(k)
+                else:
+                    sel_tags.add(k)
+                st.rerun()
+
+    notice_text = st.text_area(
+        "Notice",
+        placeholder='e.g. "My /r/ is too heavy in \'butter\' — original sounds more like a schwa. '
+                    'Also missed the linking between \'ran_out\'."',
+        key="p4_notice_text",
+        height=100,
+        label_visibility="collapsed",
+    )
 
     pending_notices = []
-
-    for seg in target_segs:
-        st.markdown(f"""
-        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;
-                    padding:14px 16px;margin:10px 0;">
-            <div class="label-xs" style="margin-bottom:6px;">Sentence {seg['idx']+1}</div>
-            <div style="font-size:.92rem;font-weight:600;color:var(--color-primary);
-                        margin-bottom:8px;">{seg['text']}</div>
-            <div style="background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:4px;
-                        padding:8px 12px;font-size:.82rem;color:#92400E;margin-bottom:10px;">
-                👂 <strong>Listen for:</strong> {seg['cue_en']}<br>
-                <span style="color:#78350F;">{seg['cue_zh']}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        notice_text = st.text_area(
-            "What did you notice?",
-            placeholder='e.g. "I stressed the second syllable in prodigy — original stresses the first"',
-            key=f"cmp_notice_{seg['idx']}",
-            height=80,
-            label_visibility="collapsed",
-        )
-
-        # tag selector
-        tag_options = ["— no tag —"] + [
-            f'{v["label"]} / {v["zh"]}' for v in TAGS.values()
-        ]
-        tag_sel = st.selectbox(
-            "Tag (optional)",
-            tag_options,
-            key=f"cmp_tag_{seg['idx']}",
-            label_visibility="collapsed",
-        )
-        tag_key = None
-        if tag_sel != "— no tag —":
-            for k, v in TAGS.items():
-                if v["label"] in tag_sel:
-                    tag_key = k
-                    break
-
-        if notice_text.strip():
-            pending_notices.append({
-                "text":           notice_text.strip(),
-                "tag":            tag_key,
-                "sentence":       seg["text"],
-                "sentence_idx":   seg["idx"],
-                "material_id":    mat["id"],
-                "material_title": mat["title"],
-                "session_id":     st.session_state.current_session_id,
-                "created_at":     datetime.now().strftime("%Y-%m-%d %H:%M"),
-            })
+    if notice_text.strip() or sel_tags:
+        pending_notices.append({
+            "text":           notice_text.strip(),
+            "tags":           list(sel_tags),
+            "material_id":    mat["id"],
+            "material_title": mat["title"],
+            "session_id":     st.session_state.current_session_id,
+            "created_at":     datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
 
     # store pending in session state so Capture phase can save them
     st.session_state["_pending_notices"] = pending_notices
@@ -1572,6 +1544,14 @@ def _phase_compare():
 # PHASE 5 — CAPTURE
 # ══════════════════════════════════════════════════════════════════
 
+def _notice_tags(n: dict) -> list:
+    """Return tag keys for a notice, handling both old single-tag and new multi-tag formats."""
+    if "tags" in n:
+        return n["tags"]
+    t = n.get("tag")
+    return [t] if t else []
+
+
 def _get_gpt_followup(top_tag: str, count: int, session_notices: list) -> str:
     """
     Generate a scaffolded follow-up question based on the student's top notice type.
@@ -1581,7 +1561,7 @@ def _get_gpt_followup(top_tag: str, count: int, session_notices: list) -> str:
     from modules.materials import TAGS
 
     tag_label = TAGS.get(top_tag, {}).get("label", top_tag)
-    notice_texts = [n.get("text", "") for n in session_notices if n.get("tag") == top_tag]
+    notice_texts = [n.get("text", "") for n in session_notices if top_tag in _notice_tags(n)]
     examples = "; ".join(notice_texts[:2]) if notice_texts else "no specific examples"
 
     static_fallbacks = {
@@ -1656,8 +1636,7 @@ def _phase_capture():
     ]
     tag_counts: dict = {}
     for n in session_notices:
-        t = n.get("tag")
-        if t:
+        for t in _notice_tags(n):
             tag_counts[t] = tag_counts.get(t, 0) + 1
 
     # ── guided reflection ─────────────────────────────────────────
@@ -1672,15 +1651,21 @@ def _phase_capture():
             unsafe_allow_html=True
         )
         for n in session_notices:
-            tag_key = n.get("tag", "")
-            t = TAGS.get(tag_key, {})
+            n_tags = _notice_tags(n)
+            first_t = TAGS.get(n_tags[0], {}) if n_tags else {}
+            badges = "".join(
+                f'<span style="background:{TAGS.get(k,{}).get("bg","#F3F4F6")};'
+                f'color:{TAGS.get(k,{}).get("color","#374151")};'
+                f'border-radius:99px;padding:2px 8px;font-size:.72rem;font-weight:700;'
+                f'white-space:nowrap;margin-right:4px;">'
+                f'{TAGS.get(k,{}).get("label","?")}</span>'
+                for k in n_tags
+            )
             st.markdown(
                 f'<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;'
                 f'padding:8px 12px;background:#F9FAFB;border-radius:8px;'
-                f'border-left:3px solid {t.get("color","#E5E7EB")};">'
-                f'<span style="background:{t.get("bg","#F3F4F6")};color:{t.get("color","#374151")};'
-                f'border-radius:99px;padding:2px 8px;font-size:.72rem;font-weight:700;'
-                f'white-space:nowrap;">{t.get("label","?")}</span>'
+                f'border-left:3px solid {first_t.get("color","#E5E7EB")};">'
+                f'<div style="display:flex;flex-wrap:wrap;gap:4px;flex-shrink:0;">{badges}</div>'
                 f'<span style="font-size:.82rem;color:#374151;">{n.get("text","")}</span>'
                 f'</div>',
                 unsafe_allow_html=True
@@ -1840,8 +1825,7 @@ def _phase_capture():
     if st.button("✅ Finish Session / 结束会话", type="primary", key="cap_finish"):
         tag_dist: dict = {}
         for n in session_notices:
-            t = n.get("tag")
-            if t:
+            for t in _notice_tags(n):
                 tag_dist[t] = tag_dist.get(t, 0) + 1
 
         st.session_state.session_history.append({

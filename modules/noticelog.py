@@ -10,6 +10,14 @@ from modules.ai import get_pattern_summary, is_ai_available
 from modules.community import open_share_draft
 
 
+def _notice_tags(n: dict) -> list:
+    """Return tag keys for a notice, handling both old single-tag and new multi-tag formats."""
+    if "tags" in n:
+        return n["tags"]
+    t = n.get("tag")
+    return [t] if t else []
+
+
 def noticelog_page():
     st.title("📋 Notice Log / 发现记录")
     st.markdown(
@@ -41,8 +49,7 @@ def noticelog_page():
     # ── stats row ────────────────────────────────────────────────
     tag_counts: dict = {}
     for n in log:
-        t = n.get("tag")
-        if t:
+        for t in _notice_tags(n):
             tag_counts[t] = tag_counts.get(t, 0) + 1
 
     top_tag = max(tag_counts, key=tag_counts.get) if tag_counts else None
@@ -106,16 +113,15 @@ def noticelog_page():
     if type_filter != "All types":
         for k, v in TAGS.items():
             if v["label"] in type_filter:
-                filtered = [n for n in filtered if n.get("tag") == k]
+                filtered = [n for n in filtered if k in _notice_tags(n)]
                 break
     if search:
         filtered = [n for n in filtered
-                    if search.lower() in n.get("text","").lower()
-                    or search.lower() in n.get("sentence","").lower()]
+                    if search.lower() in n.get("text","").lower()]
     if "Oldest" in sort_opt:
         pass
     elif "type" in sort_opt.lower():
-        filtered = sorted(filtered, key=lambda x: x.get("tag",""))
+        filtered = sorted(filtered, key=lambda x: (_notice_tags(x) or [""])[0])
     else:
         filtered = list(reversed(filtered))
 
@@ -145,39 +151,32 @@ def noticelog_page():
 
 
 def _notice_card(notice: dict, idx: int):
-    tag_key = notice.get("tag")
-    tag     = TAGS.get(tag_key, {}) if tag_key else {}
-    color   = tag.get("color", "#6B7280")
-    bg      = tag.get("bg",    "#F9FAFB")
-    border  = tag.get("border","#D1D5DB")
+    tag_keys = _notice_tags(notice)
+    first    = TAGS.get(tag_keys[0], {}) if tag_keys else {}
+    left_border = first.get("color", "#E5E7EB")
 
-    badge = ""
-    if tag_key:
-        badge = (f'<span style="background:{bg};color:{color};border:1px solid {border};'
-                 f'border-radius:99px;padding:2px 10px;font-size:.74rem;font-weight:700;">'
-                 f'{tag["label"]} / {tag["zh"]}</span>')
+    badges = "".join(
+        f'<span style="background:{TAGS.get(k,{}).get("bg","#F3F4F6")};'
+        f'color:{TAGS.get(k,{}).get("color","#6B7280")};'
+        f'border:1px solid {TAGS.get(k,{}).get("border","#D1D5DB")};'
+        f'border-radius:99px;padding:2px 10px;font-size:.74rem;font-weight:700;margin-right:4px;">'
+        f'{TAGS.get(k,{}).get("label","?")} / {TAGS.get(k,{}).get("zh","")}</span>'
+        for k in tag_keys if k in TAGS
+    )
 
-    st.markdown(f"""
-    <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;
-                padding:14px 16px;margin-bottom:8px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;
-                    margin-bottom:6px;">
-            {badge}
-            <span style="font-size:.74rem;color:#9CA3AF;">
-                {notice.get('material_title','')} &nbsp;·&nbsp;
-                {notice.get('created_at','')}
-            </span>
-        </div>
-        <div style="font-size:.9rem;font-weight:600;color:#1F2937;margin-bottom:6px;
-                    line-height:1.5;">
-            {notice.get('text','—')}
-        </div>
-        <div style="font-size:.8rem;color:#6B7280;font-style:italic;border-left:3px solid #E5E7EB;
-                    padding-left:10px;line-height:1.5;">
-            "{notice.get('sentence','')}"
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;'
+        f'border-left:4px solid {left_border};padding:14px 16px;margin-bottom:8px;">'
+        f'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">'
+        f'<div style="display:flex;flex-wrap:wrap;gap:4px;">{badges if badges else ""}</div>'
+        f'<span style="font-size:.74rem;color:#9CA3AF;white-space:nowrap;margin-left:8px;">'
+        f'{notice.get("material_title","")} · {notice.get("created_at","")}</span>'
+        f'</div>'
+        f'<div style="font-size:.9rem;font-weight:600;color:#1F2937;line-height:1.5;">'
+        f'{notice.get("text","—")}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 
 def _pattern_summary(log, tag_counts, top_tag):

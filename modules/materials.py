@@ -35,6 +35,10 @@ TAGS = {
                    "color": "#374151", "bg": "#F3F4F6", "border": "#D1D5DB"},
     "nuclear":    {"label": "Nuclear Stress", "zh": "核心重音",
                    "color": "#854F0B", "bg": "#FEF3C7", "border": "#FCD34D"},
+    "vowel":      {"label": "Vowel Quality",  "zh": "元音质量",
+                   "color": "#0369A1", "bg": "#E0F2FE", "border": "#7DD3FC"},
+    "consonant":  {"label": "Consonant",      "zh": "辅音",
+                   "color": "#4D7C0F", "bg": "#ECFCCB", "border": "#A3E635"},
 }
 
 
