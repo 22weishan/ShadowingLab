@@ -15,6 +15,7 @@ from modules.landing  import landing_page
 from modules.styles   import inject_global_css
 from modules.research import research_page
 from modules.community import community_page
+from modules.about import about_page
 from modules.userdata  import init_user, trigger_save
 
 inject_global_css()
@@ -50,6 +51,7 @@ with st.sidebar:
         "📋  Notice Log":       "noticelog",
         "📈  Progress":         "progress",
         "💬  Community":        "community",
+        "📚  About Shadowing":  "about",
     }
 
     for label, key in pages.items():
@@ -149,3 +151,4 @@ elif page == "noticelog": noticelog_page()
 elif page == "progress":  progress_page()
 elif page == "research":  research_page()
 elif page == "community": community_page()
+elif page == "about":     about_page()
