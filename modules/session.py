@@ -1098,6 +1098,69 @@ def _render_word_annotations(seg: dict, show_annotations: bool = True) -> str:
     )
 
 
+def _mic_prewarm_component():
+    """
+    Silently request mic access as soon as Phase 3 loads.
+    Keeps the stream alive so Bluetooth devices stay in HFP mode,
+    eliminating the 1-2 s reconnection delay when the user hits Record.
+    """
+    html = """<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{margin:0;font-family:system-ui,sans-serif;background:transparent;}
+#s{font-size:.74rem;padding:3px 10px;border-radius:4px;display:inline-block;
+   background:#F0FDF4;border:1px solid #BBF7D0;color:#065F46;}
+</style></head><body>
+<span id="s">⏳ Connecting microphone…</span>
+<script>
+(async function(){
+  var el=document.getElementById("s");
+  try{
+    var stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    var track=stream.getAudioTracks()[0];
+    el.textContent="🎤 Ready · "+(track?track.label:"Microphone");
+    window._prewarmStream=stream; // keep alive → no re-connection delay on Record
+  }catch(e){
+    el.style.background="#FEF2F2";el.style.borderColor="#FECACA";el.style.color="#991B1B";
+    el.textContent=(e.name==="NotAllowedError")
+      ?"⚠️ Mic blocked — allow microphone in browser settings / 请在浏览器设置中允许麦克风"
+      :"⚠️ Mic unavailable: "+e.message;
+  }
+})();
+</script></body></html>"""
+    import streamlit.components.v1 as _c
+    _c.html(html, height=30, scrolling=False)
+
+
+def _phase3_guide():
+    """Compact always-visible instruction card for Phase 3."""
+    st.markdown(
+        '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;'
+        'padding:10px 16px;margin:6px 0 10px;font-size:.82rem;color:#374151;line-height:1.9;">'
+
+        '<strong>🎧 Headphones recommended / 建议戴耳机</strong>'
+        '<span style="color:#6B7280;"> — '
+        'Bluetooth adds 1–2 s delay; wait for <em>Mic Ready</em> above before recording. '
+        '蓝牙有1–2秒延迟，等麦克风显示Ready后再点录音。'
+        '</span><br>'
+
+        '<strong>🔤 Shadow mode</strong>'
+        '<span style="color:#6B7280;">: audio auto-pauses after each sentence → '
+        'shadow <em>as the audio plays</em>, not after it stops. '
+        '音频每句结束后自动暂停，跟读时与音频同步，不是等音频停了才说。</span><br>'
+
+        '<strong>🎵 Flow mode</strong>'
+        '<span style="color:#6B7280;">: continuous playback — good for listening flow, '
+        'not recommended for recording. 连续播放，适合纯听练习，不建议用于录音。</span><br>'
+
+        '<strong>Step 1</strong>'
+        '<span style="color:#6B7280;"> sentence-by-sentence practice → </span>'
+        '<strong>Step 2</strong>'
+        '<span style="color:#6B7280;"> full passage with text hidden.</span>'
+
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def _phase_shadow():
     mat  = st.session_state.active_material
     segs = get_segments(mat)
@@ -1113,6 +1176,8 @@ def _phase_shadow():
                   "#7C3AED", "#F5F3FF",
                   "Shadow each sentence · 逐句跟读，再整段挑战")
     _coach_avatar("shadow")
+    _mic_prewarm_component()
+    _phase3_guide()
 
     step = st.session_state.shadow_step
     _sc1, _sc2 = st.columns(2)
