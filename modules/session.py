@@ -1005,13 +1005,16 @@ SL_setFrameHeight(document.body.scrollHeight||310);
         return result
     return None
 
-def _render_word_annotations(seg: dict) -> str:
+def _render_word_annotations(seg: dict, show_annotations: bool = True) -> str:
     """
     Render a sentence as a word-by-word annotation table using the new
     rich annotation system: stress dots, weak labels, linking arrows,
     intonation arrows, nuclear star, pause marks.
     Returns an HTML string.
     """
+    if not show_annotations:
+        return f'<span style="font-size:.9rem;line-height:1.8;">{seg["text"]}</span>'
+
     words   = seg.get("words", [])
     pauses  = set(seg.get("pauses", []))
     final   = seg.get("intonation", "fall")
