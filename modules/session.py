@@ -1139,22 +1139,18 @@ def _phase3_guide():
         '<strong>🎧 Headphones recommended / 建议戴耳机</strong>'
         '<span style="color:#6B7280;"> — '
         'Bluetooth adds 1–2 s delay; wait for <em>Mic Ready</em> above before recording. '
-        '蓝牙有1–2秒延迟，等麦克风显示Ready后再点录音。'
-        '</span><br>'
+        '蓝牙有1–2秒延迟，等麦克风显示 Ready 后再录音。</span><br>'
 
-        '<strong>🔤 Shadow mode</strong>'
-        '<span style="color:#6B7280;">: audio auto-pauses after each sentence → '
-        'shadow <em>as the audio plays</em>, not after it stops. '
-        '音频每句结束后自动暂停，跟读时与音频同步，不是等音频停了才说。</span><br>'
+        '<strong>🔤 Sentence-by-sentence</strong>'
+        '<span style="color:#6B7280;">: audio pauses after each sentence. '
+        'Shadow <em>while the audio plays</em>. Use ← → to replay or move between sentences. '
+        'Good for detailed practice. / '
+        '每句播放完后暂停，跟读时与音频同步，可逐句回听或前后切换，适合精细练习。</span><br>'
 
-        '<strong>🎵 Flow mode</strong>'
-        '<span style="color:#6B7280;">: continuous playback — good for listening flow, '
-        'not recommended for recording. 连续播放，适合纯听练习，不建议用于录音。</span><br>'
-
-        '<strong>Step 1</strong>'
-        '<span style="color:#6B7280;"> sentence-by-sentence practice → </span>'
-        '<strong>Step 2</strong>'
-        '<span style="color:#6B7280;"> full passage with text hidden.</span>'
+        '<strong>🎵 Flow</strong>'
+        '<span style="color:#6B7280;">: full passage plays continuously — shadow along without stopping. '
+        'Good when you\'re already familiar with the material. / '
+        '全段连续播放，不暂停，适合对材料已熟悉后的整体跟读。</span>'
 
         '</div>',
         unsafe_allow_html=True,
@@ -1169,33 +1165,50 @@ def _phase_shadow():
 
     if "saved_sentences" not in st.session_state:
         st.session_state.saved_sentences = set()
-    if "shadow_step" not in st.session_state:
-        st.session_state.shadow_step = 1
 
     _phase_header(3, "Shadow", "跟读",
                   "#7C3AED", "#F5F3FF",
-                  "Shadow each sentence · 逐句跟读，再整段挑战")
+                  "Sentence-by-sentence or full-passage shadowing · 逐句精练 或 整段跟读")
     _coach_avatar("shadow")
     _mic_prewarm_component()
     _phase3_guide()
 
-    step = st.session_state.shadow_step
-    _sc1, _sc2 = st.columns(2)
-    with _sc1:
-        if st.button("🔤 Step 1 · Sentence by sentence / 逐句",
-                     type="primary" if step == 1 else "secondary",
-                     use_container_width=True, key="shadow_step1_btn"):
-            st.session_state.shadow_step = 1; st.rerun()
-    with _sc2:
-        if st.button("📄 Step 2 · Full passage / 整段",
-                     type="primary" if step == 2 else "secondary",
-                     use_container_width=True, key="shadow_step2_btn"):
-            st.session_state.shadow_step = 2; st.rerun()
+    # ── Mode switcher ─────────────────────────────────────────────
+    mode = st.session_state.get("shadow_playback_mode", "shadow")
+    _mc1, _mc2 = st.columns(2)
+    with _mc1:
+        if st.button("🔤 Sentence-by-sentence / 逐句",
+                     type="primary" if mode == "shadow" else "secondary",
+                     use_container_width=True, key="mode_btn_sent"):
+            st.session_state.shadow_playback_mode = "shadow"; st.rerun()
+    with _mc2:
+        if st.button("🎵 Flow / 整段跟读",
+                     type="primary" if mode == "flow" else "secondary",
+                     use_container_width=True, key="mode_btn_flow"):
+            st.session_state.shadow_playback_mode = "flow"; st.rerun()
+
+    # ── Text visibility controls (shared by both modes) ───────────
+    show_text = st.session_state.get("shadow_show_text", False)
+    show_ann  = show_text and st.session_state.get("shadow_show_ann", False)
+    _tv1, _tv2, _ = st.columns([1, 1, 3])
+    with _tv1:
+        if st.button("👁 Hide text / 隐藏" if show_text else "👁 Show text / 显示文本",
+                     key="p3_txt_toggle"):
+            new_show = not show_text
+            st.session_state.shadow_show_text = new_show
+            if not new_show:
+                st.session_state.shadow_show_ann = False
+            st.rerun()
+    with _tv2:
+        if show_text:
+            if st.button("🏷 Hide annotations / 隐藏注释" if show_ann else "🏷 Show annotations / 显示注释",
+                         key="p3_ann_toggle"):
+                st.session_state.shadow_show_ann = not show_ann; st.rerun()
+
     st.markdown("")
 
-    if step == 1:
-
-        # ── timestamps ──────────────────────────────────────────────
+    # ── SENTENCE-BY-SENTENCE MODE ─────────────────────────────────
+    if mode == "shadow":
         audio_b64 = _load_audio_b64(mat["audio_path"])
         cache_key = "whisper_ts_" + mat["id"]
         if cache_key not in st.session_state and is_ai_available():
@@ -1204,98 +1217,98 @@ def _phase_shadow():
         else:
             timestamps = get_timestamps_for_material(mat)
 
-        # annotation toggle
-        show_ann = st.session_state.get("shadow_show_ann", False)
-        if st.button(
-            "🏷 Hide annotations / 隐藏注释" if show_ann else "🏷 Show annotations / 显示注释",
-            key="shadow_ann_toggle",
-        ):
-            st.session_state.shadow_show_ann = not show_ann; st.rerun()
+        # Text panel (conditional on show_text)
+        if show_text:
+            rows_html = []
+            for i, seg_i in enumerate(segs):
+                is_cur   = (i == cur)
+                is_done  = (i in st.session_state.visited_segments)
+                is_saved = (i in st.session_state.saved_sentences)
+                ann_html = _render_word_annotations(seg_i, show_annotations=show_ann)
+                star_c   = "#F59E0B" if is_saved else "#CBD5E1"
+                star_ch  = "&#9733;" if is_saved else "&#9734;"
+                star_span = (
+                    f'<span id="star{i}" onclick="toggleStar({i})" ' +
+                    f'style="cursor:pointer;font-size:14px;color:{star_c};' +
+                    'margin-right:5px;user-select:none;">' +
+                    f'{star_ch}</span>'
+                )
+                if is_cur:
+                    rows_html.append(
+                        f'<div id="s{i}" style="scroll-margin-top:4px;background:#F9FAFB;'
+                        'border-left:2px solid #D1D5DB;border-radius:0 8px 8px 0;'
+                        f'padding:8px 12px;margin-bottom:5px;">'
+                        f'<div style="display:flex;align-items:center;margin-bottom:4px;">'
+                        + star_span +
+                        f'<span style="font-size:10px;color:#9CA3AF;">{i+1}</span>'
+                        '</div>' + ann_html + '</div>'
+                    )
+                elif is_done:
+                    rows_html.append(
+                        f'<div id="s{i}" style="scroll-margin-top:4px;background:#F0FDF4;'
+                        'border-left:2px solid #10B981;border-radius:0 8px 8px 0;'
+                        f'padding:8px 12px;margin-bottom:5px;">'
+                        f'<div style="display:flex;align-items:center;margin-bottom:3px;">'
+                        + star_span +
+                        f'<span style="font-size:10px;font-weight:600;color:#10B981;">&#10003; {i+1}</span>'
+                        '</div>' + ann_html + '</div>'
+                    )
+                else:
+                    rows_html.append(
+                        f'<div id="s{i}" style="scroll-margin-top:4px;'
+                        'border-left:2px solid #E5E7EB;border-radius:0 8px 8px 0;'
+                        f'padding:8px 12px;margin-bottom:5px;">'
+                        f'<div style="display:flex;align-items:center;margin-bottom:3px;">'
+                        + star_span +
+                        f'<span style="font-size:10px;color:#9CA3AF;">{i+1}</span>'
+                        '</div>' + ann_html + '</div>'
+                    )
 
-        # ── TEXT PANEL ───────────────────────────────────────────────
-        rows_html = []
-        for i, seg_i in enumerate(segs):
-            is_cur   = (i == cur)
-            is_done  = (i in st.session_state.visited_segments)
-            is_saved = (i in st.session_state.saved_sentences)
-            ann_html = _render_word_annotations(seg_i, show_annotations=show_ann)
-            star_c   = "#F59E0B" if is_saved else "#CBD5E1"
-            star_ch  = "&#9733;" if is_saved else "&#9734;"
-            star_span = (
-                f'<span id="star{i}" onclick="toggleStar({i})" ' +
-                f'style="cursor:pointer;font-size:14px;color:{star_c};' +
-                'margin-right:5px;user-select:none;">' +
-                f'{star_ch}</span>'
+            saved_json = str(list(st.session_state.saved_sentences))
+            inner   = "".join(rows_html)
+            panel_h = 100
+            panel_html = (
+                "<!DOCTYPE html><html><head><style>"
+                "html,body{margin:0;padding:0;overflow:hidden;font-family:system-ui,sans-serif;}"
+                f"#p{{height:{panel_h}px;overflow-y:scroll;padding:6px 8px 4px;box-sizing:border-box;}}"
+                "table{border-collapse:collapse;}td{padding:0;vertical-align:middle;}"
+                "</style></head><body>"
+                f"<div id='p'>{inner}</div>"
+                "<script>"
+                "function _post(t,x){window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:t},x),'*');}"
+                "_post('streamlit:componentReady',{apiVersion:1});"
+                f"var saved=new Set({saved_json});"
+                "function toggleStar(i){"
+                "  var el=document.getElementById('star'+i);"
+                "  if(saved.has(i)){saved.delete(i);el.style.color='#CBD5E1';el.innerHTML='&#9734';}"
+                "  else{saved.add(i);el.style.color='#F59E0B';el.innerHTML='&#9733';}"
+                "  _post('streamlit:setComponentValue',{value:{type:'bk',value:i},dataType:'json'});"
+                "}"
+                "setTimeout(function(){"
+                f"  var e=document.getElementById('s{cur}'),p=document.getElementById('p');"
+                "  if(e&&p)p.scrollTop=Math.max(0,e.offsetTop-20);"
+                "},80);"
+                "</script>"
+                "</body></html>"
+            )
+            panel_result = components.html(panel_html, height=panel_h + 4, scrolling=False)
+            if isinstance(panel_result, dict) and panel_result.get("type") == "bk":
+                idx = int(panel_result["value"])
+                if idx in st.session_state.saved_sentences:
+                    st.session_state.saved_sentences.discard(idx)
+                else:
+                    st.session_state.saved_sentences.add(idx)
+                st.rerun()
+        else:
+            st.markdown(
+                '<div style="background:#F3F4F6;border-radius:8px;padding:20px;'
+                'text-align:center;color:#9CA3AF;font-size:.9rem;margin-bottom:8px;">'
+                '🎧 Text hidden · Focus on listening / 文本已隐藏，专注聆听<br>'
+                '<span style="font-size:.78rem;">点击上方"Show text"可随时查看</span></div>',
+                unsafe_allow_html=True
             )
 
-            if is_cur:
-                rows_html.append(
-                    f'<div id="s{i}" style="scroll-margin-top:4px;background:#F9FAFB;' +
-                    'border-left:2px solid #D1D5DB;border-radius:0 8px 8px 0;' +
-                    'padding:8px 12px;margin-bottom:5px;">' +
-                    f'<div style="display:flex;align-items:center;margin-bottom:4px;">' +
-                    star_span +
-                    f'<span style="font-size:10px;color:#9CA3AF;">{i+1}</span>' +
-                    '</div>' + ann_html + '</div>'
-                )
-            elif is_done:
-                rows_html.append(
-                    f'<div id="s{i}" style="scroll-margin-top:4px;background:#F0FDF4;' +
-                    'border-left:2px solid #10B981;border-radius:0 8px 8px 0;' +
-                    'padding:8px 12px;margin-bottom:5px;">' +
-                    f'<div style="display:flex;align-items:center;margin-bottom:3px;">' +
-                    star_span +
-                    f'<span style="font-size:10px;font-weight:600;color:#10B981;">&#10003; {i+1}</span>' +
-                    '</div>' + ann_html + '</div>'
-                )
-            else:
-                rows_html.append(
-                    f'<div id="s{i}" style="scroll-margin-top:4px;' +
-                    'border-left:2px solid #E5E7EB;border-radius:0 8px 8px 0;' +
-                    'padding:8px 12px;margin-bottom:5px;">' +
-                    f'<div style="display:flex;align-items:center;margin-bottom:3px;">' +
-                    star_span +
-                    f'<span style="font-size:10px;color:#9CA3AF;">{i+1}</span>' +
-                    '</div>' + ann_html + '</div>'
-                )
-
-        saved_json = str(list(st.session_state.saved_sentences))
-        inner   = "".join(rows_html)
-        panel_h = 100
-        panel_html = (
-            "<!DOCTYPE html><html><head><style>"
-            "html,body{margin:0;padding:0;overflow:hidden;font-family:system-ui,sans-serif;}"
-            f"#p{{height:{panel_h}px;overflow-y:scroll;padding:6px 8px 4px;box-sizing:border-box;}}"
-            "table{border-collapse:collapse;}td{padding:0;vertical-align:middle;}"
-            "</style></head><body>"
-            f"<div id='p'>{inner}</div>"
-            "<script>"
-            "function _post(t,x){window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:t},x),'*');}"
-            "_post('streamlit:componentReady',{apiVersion:1});"
-            f"var saved=new Set({saved_json});"
-            "function toggleStar(i){"
-            "  var el=document.getElementById('star'+i);"
-            "  if(saved.has(i)){saved.delete(i);el.style.color='#CBD5E1';el.innerHTML='&#9734';}"
-            "  else{saved.add(i);el.style.color='#F59E0B';el.innerHTML='&#9733';}"
-            "  _post('streamlit:setComponentValue',{value:{type:'bk',value:i},dataType:'json'});"
-            "}"
-            "setTimeout(function(){"
-            f"  var e=document.getElementById('s{cur}'),p=document.getElementById('p');"
-            "  if(e&&p)p.scrollTop=Math.max(0,e.offsetTop-20);"
-            "},80);"
-            "</script>"
-            "</body></html>"
-        )
-        panel_result = components.html(panel_html, height=panel_h + 4, scrolling=False)
-        if isinstance(panel_result, dict) and panel_result.get("type") == "bk":
-            idx = int(panel_result["value"])
-            if idx in st.session_state.saved_sentences:
-                st.session_state.saved_sentences.discard(idx)
-            else:
-                st.session_state.saved_sentences.add(idx)
-            st.rerun()
-
-                # ── ROW 2: audio player ──────────────────────────────────────
+        # Audio player
         if audio_b64:
             player_result = _audio_player_component(
                 audio_b64, timestamps, key="player_" + mat["id"]
@@ -1310,15 +1323,14 @@ def _phase_shadow():
                         st.rerun()
                 elif player_result["type"] == "mode":
                     st.session_state.shadow_playback_mode = player_result["value"]
+                    st.rerun()
         else:
             st.warning("Audio not found: " + mat["audio_path"])
 
-        # ── ROW 3: recording ─────────────────────────────────────────
+        # Per-sentence recording (self-check)
         seg_key   = "seg" + str(cur) + "_" + mat["id"]
         saved_b64 = st.session_state.recordings_by_segment.get(cur)
-
-        st.markdown("**🎙️ Your Recording / 你的录音**")
-
+        st.markdown("**🎙️ Self-check recording / 自检录音**")
         if saved_b64:
             st.markdown(
                 f"Sentence {cur+1} " +
@@ -1334,57 +1346,46 @@ def _phase_shadow():
         else:
             result = _sentence_recorder_component(seg_key, cur + 1)
             if result:
-                b64 = result["value"]
-                st.session_state.recordings_by_segment[cur] = b64
+                st.session_state.recordings_by_segment[cur] = result["value"]
                 st.session_state.visited_segments.add(cur)
                 st.rerun()
 
         done_segs = sorted(st.session_state.recordings_by_segment)
         if done_segs:
             st.markdown(
-                '<div style="font-size:.75rem;color:#9CA3AF;margin-top:4px;">' +
+                '<div style="font-size:.75rem;color:#9CA3AF;margin-top:4px;">'
                 "Done: " + " ".join(f"#{i+1}" for i in done_segs) + "</div>",
                 unsafe_allow_html=True
             )
 
-        
-    # ── FULL PASSAGE STEP ─────────────────────────────────────────
-    elif step == 2:
-        show_text = st.session_state.get("shadow_show_text", False)
-        _tc1, _tc2 = st.columns([1, 4])
-        with _tc1:
-            if st.button("👁 Hide text / 隐藏" if show_text else "👁 Show text / 显示文本",
-                         key="shadow_toggle_text"):
-                st.session_state.shadow_show_text = not show_text; st.rerun()
-        st.markdown(
-            '<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;'
-            'padding:10px 14px;margin-bottom:12px;font-size:.83rem;color:#6B7280;">'
-            "Shadow the entire passage continuously. "
-            "Text is hidden by default — focus on listening.<br>"
-            "整段连续跟读。文本默认隐藏，专注于聆听。"
-            "</div>", unsafe_allow_html=True
-        )
+    # ── FLOW MODE ─────────────────────────────────────────────────
+    elif mode == "flow":
+        # Text display (conditional)
         if show_text:
             for s in segs:
+                ann_html = _render_word_annotations(s, show_annotations=show_ann)
                 st.markdown(
-                    '<div style="border-left:3px solid #E5E7EB;padding:8px 14px;'
-                    'margin-bottom:6px;font-size:.88rem;color:#6B7280;">'
-                    + s["text"] + "</div>",
+                    f'<div style="border-left:3px solid #E5E7EB;padding:8px 14px;'
+                    f'margin-bottom:6px;font-size:.88rem;color:#374151;">'
+                    + ann_html + "</div>",
                     unsafe_allow_html=True
                 )
         else:
             st.markdown(
                 '<div style="background:#F3F4F6;border-radius:8px;padding:28px;'
                 'text-align:center;color:#9CA3AF;font-size:.9rem;margin-bottom:12px;">'
-                '🎧 Text hidden · Focus on the audio<br>'
+                '🎧 Text hidden · Focus on the audio / 文本已隐藏，专注聆听<br>'
                 '<span style="font-size:.78rem;">点击上方"Show text"可随时查看</span></div>',
                 unsafe_allow_html=True
             )
-        st.markdown("---")
+
         st.markdown("**🔊 Original / 原音**")
         audio_b64 = _load_audio_b64(mat["audio_path"])
         if audio_b64:
             st.audio(base64.b64decode(audio_b64), format="audio/mp3")
+        else:
+            st.warning("Audio not found: " + mat["audio_path"])
+
         st.markdown("**🎙️ Your Recording / 你的录音**")
         full_b64 = st.session_state.full_recording
         if full_b64:
@@ -1399,24 +1400,24 @@ def _phase_shadow():
                 st.session_state.full_recording = None
                 st.rerun()
         else:
-            full_takes_done = 1 if st.session_state.full_recording else 0
             result = _sentence_recorder_func(
                 seg_num=0,
-                key=f"full_{mat['id']}_take{full_takes_done}",
+                key=f"full_{mat['id']}_take0",
             )
             if isinstance(result, dict) and result.get("type") == "rec":
                 st.session_state.full_recording = result["value"]
                 st.rerun()
 
+    # ── Bottom navigation ─────────────────────────────────────────
     col_b, col_f, _ = st.columns([1, 1.5, 2])
     with col_b:
-        if st.button("Back to Prepare", key="shd_back"):
+        if st.button("← Back to Prepare", key="shd_back"):
             advance_phase("prepare")
             st.rerun()
     with col_f:
         has_rec = bool(st.session_state.recordings_by_segment or st.session_state.full_recording)
-        label = "Continue to Compare" if has_rec else "Continue to Compare (no recording yet)"
-        if st.button(label + " →", type="primary", key="shd_next_phase"):
+        label = "Continue to Compare →" if has_rec else "Continue to Compare (no recording yet) →"
+        if st.button(label, type="primary", key="shd_next_phase"):
             if st.session_state.full_recording:
                 st.session_state.compare_recording = {
                     "b64": st.session_state.full_recording, "type": "full"
