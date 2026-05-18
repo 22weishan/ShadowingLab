@@ -1094,15 +1094,29 @@ def _phase_shadow():
 
     if "saved_sentences" not in st.session_state:
         st.session_state.saved_sentences = set()
+    if "shadow_step" not in st.session_state:
+        st.session_state.shadow_step = 1
 
     _phase_header(3, "Shadow", "跟读",
                   "#7C3AED", "#F5F3FF",
                   "Shadow each sentence · 逐句跟读，再整段挑战")
     _coach_avatar("shadow")
 
-    tab_sent, tab_full = st.tabs(["🔤 Sentence by sentence / 逐句", "📄 Full passage / 整段"])
+    step = st.session_state.shadow_step
+    _sc1, _sc2 = st.columns(2)
+    with _sc1:
+        if st.button("🔤 Step 1 · Sentence by sentence / 逐句",
+                     type="primary" if step == 1 else "secondary",
+                     use_container_width=True, key="shadow_step1_btn"):
+            st.session_state.shadow_step = 1; st.rerun()
+    with _sc2:
+        if st.button("📄 Step 2 · Full passage / 整段",
+                     type="primary" if step == 2 else "secondary",
+                     use_container_width=True, key="shadow_step2_btn"):
+            st.session_state.shadow_step = 2; st.rerun()
+    st.markdown("")
 
-    with tab_sent:
+    if step == 1:
 
         # ── timestamps ──────────────────────────────────────────────
         audio_b64 = _load_audio_b64(mat["audio_path"])
@@ -1264,22 +1278,36 @@ def _phase_shadow():
             )
 
         
-    # ── FULL PASSAGE TAB ───────────────────────────────────────────
-    with tab_full:
+    # ── FULL PASSAGE STEP ─────────────────────────────────────────
+    elif step == 2:
+        show_text = st.session_state.get("shadow_show_text", False)
+        _tc1, _tc2 = st.columns([1, 4])
+        with _tc1:
+            if st.button("👁 Hide text / 隐藏" if show_text else "👁 Show text / 显示文本",
+                         key="shadow_toggle_text"):
+                st.session_state.shadow_show_text = not show_text; st.rerun()
         st.markdown(
             '<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;'
             'padding:10px 14px;margin-bottom:12px;font-size:.83rem;color:#6B7280;">'
-            "Shadow the entire passage. Switch to Flow mode for continuous playback. "
-            "Try without text when ready.<br>"
-            "整段跟读。切换到Flow模式连续播放。准备好后尝试不看文本。"
+            "Shadow the entire passage continuously. "
+            "Text is hidden by default — focus on listening.<br>"
+            "整段连续跟读。文本默认隐藏，专注于聆听。"
             "</div>", unsafe_allow_html=True
         )
-        # full text display
-        for s in segs:
+        if show_text:
+            for s in segs:
+                st.markdown(
+                    '<div style="border-left:3px solid #E5E7EB;padding:8px 14px;'
+                    'margin-bottom:6px;font-size:.88rem;color:#6B7280;">'
+                    + s["text"] + "</div>",
+                    unsafe_allow_html=True
+                )
+        else:
             st.markdown(
-                '<div style="border-left:3px solid #E5E7EB;padding:8px 14px;'
-                'margin-bottom:6px;font-size:.88rem;color:#6B7280;">'
-                + s["text"] + "</div>",
+                '<div style="background:#F3F4F6;border-radius:8px;padding:28px;'
+                'text-align:center;color:#9CA3AF;font-size:.9rem;margin-bottom:12px;">'
+                '🎧 Text hidden · Focus on the audio<br>'
+                '<span style="font-size:.78rem;">点击上方"Show text"可随时查看</span></div>',
                 unsafe_allow_html=True
             )
         st.markdown("---")
