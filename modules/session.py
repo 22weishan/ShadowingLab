@@ -564,71 +564,100 @@ def _coach_avatar(phase_key: str):
 def _phase_select():
     st.title("🎧 ShadowingLab")
     st.markdown(
-        '<p class="muted" style="margin-top:-8px;margin-bottom:24px;">'
-        'A structured shadowing tool for Chinese EFL learners. '
-        'Each session takes 20–30 minutes and follows a research-backed five-phase process.'
+        '<p class="muted" style="margin-top:-8px;margin-bottom:16px;">'
+        'Structured shadowing for Chinese EFL learners · 每次练习约 20–30 分钟'
         '</p>', unsafe_allow_html=True
     )
 
-    # previous sessions callout
     history = st.session_state.session_history
+
+    # ── Last session callout ──────────────────────────────────────
     if history:
         last = history[-1]
-        st.markdown(f"""
-        <div class="sl-card sl-card-teal" style="margin-bottom:20px;">
-            <div class="label-xs" style="margin-bottom:6px;">Last session</div>
-            <div style="font-weight:600;color:var(--color-primary);">{last['material_title']}</div>
-            <div class="muted">{last['date']} &nbsp;·&nbsp;
-            {last['notices']} notice{"s" if last['notices']!=1 else ""} recorded</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;'
+            f'padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">'
+            f'<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.05em;color:#0F766E;white-space:nowrap;">Last session</div>'
+            f'<div style="font-size:.88rem;font-weight:600;color:#134E4A;flex:1;">'
+            f'{last["material_title"]}</div>'
+            f'<div style="font-size:.78rem;color:#6B7280;white-space:nowrap;">'
+            f'{last["date"]} · {last["notices"]} notice{"s" if last["notices"]!=1 else ""}'
+            f'</div></div>',
+            unsafe_allow_html=True
+        )
 
-    _coach_avatar("select")
-    st.markdown("### Choose a material / 选择练习材料")
+    # ── Difficulty filter pills ───────────────────────────────────
+    DIFF_OPTIONS = ["All", "Beginner", "Easy", "Intermediate", "Advanced"]
+    active_diff  = st.session_state.get("select_diff_filter", "All")
 
-    for mat in get_all_materials():
-        prev         = [h for h in history if h["material_id"] == mat["id"]]
-        prev_notices = sum(h["notices"] for h in prev)
-        diff_colors  = {
-            "beginner":     ("#065F46", "#ECFDF5"),
-            "intermediate": ("#92400E", "#FFFBEB"),
-            "advanced":     ("#9F1239", "#FFF1F2"),
-        }
-        dc, db = diff_colors.get(mat["difficulty"], ("#374151", "#F3F4F6"))
-        mins   = mat["duration_sec"] // 60
-        n_segs = len(get_segments(mat))
-        kw     = ", ".join(mat["keywords"])
-        diff   = mat["difficulty"].title()
-        title  = mat["title"]
+    pill_cols = st.columns(len(DIFF_OPTIONS))
+    for col, d in zip(pill_cols, DIFF_OPTIONS):
+        if col.button(d, key=f"diff_pill_{d}",
+                      type="primary" if active_diff == d else "secondary",
+                      use_container_width=True):
+            st.session_state.select_diff_filter = d
+            st.rerun()
 
-        with st.container():
-            st.markdown(
-                f'<div style="border:1px solid #E5E7EB;border-radius:12px;'
-                f'padding:14px 16px;margin-bottom:6px;">' +
-                f'<div style="font-size:1.05rem;font-weight:700;color:#1A3A5C;margin-bottom:8px;">{title}</div>' +
-                f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">' +
-                f'<span style="background:{db};color:{dc};border-radius:99px;padding:2px 10px;font-size:.75rem;font-weight:700;">{diff}</span>' +
-                f'<span style="font-size:.82rem;color:#6B7280;">⏱ ~{mins} min</span>' +
-                f'<span style="font-size:.82rem;color:#6B7280;">{n_segs} sentences</span>' +
-                (f'<span style="font-size:.78rem;color:#6B7280;">{len(prev)} prev session{"s" if len(prev)!=1 else ""}</span>' if prev else '') +
-                (f'<span style="font-size:.78rem;color:#0F6E56;">{prev_notices} notices</span>' if prev_notices else '') +
-                f'</div>' +
-                f'<div style="font-size:.78rem;color:#9CA3AF;">Keywords: {kw}</div>' +
-                f'</div>',
-                unsafe_allow_html=True
-            )
-            if st.button("Start session →", key="start_" + mat["id"], type="primary"):
-                start_new_session(mat)
-                st.rerun()
+    st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown(
-        '<div class="caption-note">'
-        '📁 <strong>Upload your own material</strong> — coming in a future version. '
-        'When enabled, Whisper will automatically annotate stress, linking, and weak forms '
-        'in any MP3 you upload.'
-        '</div>', unsafe_allow_html=True
-    )
+    # ── Difficulty style map ──────────────────────────────────────
+    DIFF_STYLE = {
+        "beginner":     ("#065F46", "#DCFCE7", "#BBF7D0"),
+        "easy":         ("#0F766E", "#CCFBF1", "#99F6E4"),
+        "intermediate": ("#92400E", "#FFFBEB", "#FDE68A"),
+        "advanced":     ("#9F1239", "#FFF1F2", "#FECDD3"),
+    }
+
+    # ── Material rows ─────────────────────────────────────────────
+    all_mats = get_all_materials()
+    filtered = [
+        m for m in all_mats
+        if active_diff == "All" or m["difficulty"].lower() == active_diff.lower()
+    ]
+
+    if not filtered:
+        st.info("No materials at this level yet.")
+    else:
+        for mat in filtered:
+            prev         = [h for h in history if h["material_id"] == mat["id"]]
+            prev_notices = sum(h["notices"] for h in prev)
+            dc, db, dbr  = DIFF_STYLE.get(mat["difficulty"], ("#374151", "#F3F4F6", "#D1D5DB"))
+            mins         = mat["duration_sec"] // 60
+            n_segs       = len(get_segments(mat))
+            diff_label   = mat["difficulty"].title()
+
+            # practiced indicator
+            practiced_html = ""
+            if prev:
+                practiced_html = (
+                    f'<span style="font-size:.72rem;color:#059669;margin-left:6px;">'
+                    f'✓ {len(prev)}× · {prev_notices} notice{"s" if prev_notices!=1 else ""}'
+                    f'</span>'
+                )
+
+            col_info, col_btn = st.columns([5, 1])
+            with col_info:
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;gap:10px;'
+                    f'padding:10px 4px;border-bottom:1px solid #F3F4F6;">'
+                    f'<span style="background:{db};color:{dc};border:1px solid {dbr};'
+                    f'border-radius:99px;padding:2px 9px;font-size:.72rem;font-weight:700;'
+                    f'white-space:nowrap;">{diff_label}</span>'
+                    f'<span style="font-size:.92rem;font-weight:600;color:#1A3A5C;flex:1;">'
+                    f'{mat["title"]}</span>'
+                    f'<span style="font-size:.78rem;color:#9CA3AF;white-space:nowrap;">'
+                    f'~{mins} min · {n_segs} sentences</span>'
+                    f'{practiced_html}'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            with col_btn:
+                st.markdown('<div style="padding-top:6px;"></div>', unsafe_allow_html=True)
+                if st.button("Start →", key="start_" + mat["id"],
+                             type="primary", use_container_width=True):
+                    start_new_session(mat)
+                    st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════
