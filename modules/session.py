@@ -534,7 +534,13 @@ def _coach_avatar(phase_key: str):
     tips = _COACH_TIPS.get(phase_key, [])
     if not tips:
         return
-    _, btn_col = st.columns([14, 1])
+    _, hint_col, btn_col = st.columns([9, 3.5, 1])
+    with hint_col:
+        st.markdown(
+            '<div style="text-align:right;font-size:.74rem;color:#9CA3AF;'
+            'padding-top:7px;white-space:nowrap;">点击可查看练习提示</div>',
+            unsafe_allow_html=True
+        )
     with btn_col:
         with st.popover("💬", use_container_width=True):
             st.markdown(
@@ -586,6 +592,8 @@ def _phase_select():
             f'</div></div>',
             unsafe_allow_html=True
         )
+
+    _coach_avatar("select")
 
     # ── Difficulty filter pills ───────────────────────────────────
     DIFF_OPTIONS = ["All", "Beginner", "Easy", "Intermediate", "Advanced"]
