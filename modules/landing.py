@@ -114,6 +114,15 @@ def _onboarding():
              '<span style="color:#9CA3AF;">把你的发现分享给其他学习者，也看看别人在练习中注意到了什么。</span>'
              '</div></div></div>'
 
+             '<div style="display:flex;gap:12px;align-items:flex-start;">'
+             '<span style="font-size:1.3rem;flex-shrink:0;">📚</span>'
+             '<div><div style="font-weight:700;color:#1A3A5C;font-size:.9rem;">'
+             'About Shadowing / 影子跟读法科普</div>'
+             '<div style="color:#6B7280;font-size:.82rem;">'
+             'What is shadowing, where does it come from, and what does the research say? Read the full introduction before or after your first session.<br>'
+             '<span style="color:#9CA3AF;">什么是影子跟读法？它从何而来？研究怎么说？第一次练习前后都可以读一读。</span>'
+             '</div></div></div>'
+
              '</div>'
          ),
          "detail_zh": "",
