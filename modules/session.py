@@ -658,7 +658,7 @@ def _phase_prepare():
 
         audio_b64 = _load_audio_b64(mat["audio_path"])
         if audio_b64:
-            st.audio(base64.b64decode(audio_b64), format="audio/mp3")
+            st.audio(base64.b64decode(audio_b64), format=mat.get("audio_format", "audio/mp3"))
         else:
             st.info("Audio file not found at: " + mat["audio_path"])
             st.caption("Place your MP3 at the path above and reload.")
@@ -733,7 +733,7 @@ def _phase_prepare():
 # ══════════════════════════════════════════════════════════════════
 
 
-def _audio_player_component(audio_b64, timestamps, key):
+def _audio_player_component(audio_b64, timestamps, key, audio_format="audio/mp3"):
     import json as _j
     ts_json = _j.dumps(timestamps)
     n = len(timestamps)
@@ -780,7 +780,7 @@ audio{{display:none;}}
 </style></head><body>
 <div id="wrap">
 <div class="lbl">🔊 Original Audio / 原音</div>
-<audio id="aud" preload="auto"><source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3"></audio>
+<audio id="aud" preload="auto"><source src="data:{audio_format};base64,{audio_b64}" type="{audio_format}"></audio>
 <div id="waveWrap" onclick="waveClick(event)">
   <canvas id="waveCanvas"></canvas>
   <div id="waveLoading">Loading waveform…</div>
@@ -1296,7 +1296,8 @@ def _phase_shadow():
     # ── Audio player (shared) ──────────────────────────────────────
     if audio_b64:
         player_result = _audio_player_component(
-            audio_b64, timestamps, key="player_" + mat["id"]
+            audio_b64, timestamps, key="player_" + mat["id"],
+            audio_format=mat.get("audio_format", "audio/mp3")
         )
         if player_result:
             if player_result["type"] == "seg":
@@ -1437,7 +1438,7 @@ def _phase_compare():
             '</div>', unsafe_allow_html=True)
         orig_b64 = _load_audio_b64(mat["audio_path"])
         if orig_b64:
-            st.audio(base64.b64decode(orig_b64), format="audio/mp3")
+            st.audio(base64.b64decode(orig_b64), format=mat.get("audio_format", "audio/mp3"))
         else:
             st.warning("Original audio not found.")
 
