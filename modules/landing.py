@@ -65,9 +65,33 @@ def _onboarding():
          "detail_en": "Shadowing means repeating what you hear in real time. It trains your brain to decode fast native speech.",
          "detail_zh": "跟读就是实时重复你听到的内容。它训练大脑解码快速的母语语音。",
          "btn": "How does it work? / 怎么用？"},
-        {"icon": "🗺️", "en": "Five phases, one cycle", "zh": "",
-         "detail_en": _phase_diagram, "detail_zh": "",
-         "btn": "Let us start / 开始练习"},
+        {"icon": "🧰", "en": "What's inside", "zh": "工具里有什么",
+         "detail_en": (
+             '<div style="display:flex;flex-direction:column;gap:12px;">'
+             '<div style="display:flex;gap:12px;align-items:flex-start;">'
+             '<span style="font-size:1.3rem;flex-shrink:0;">📚</span>'
+             '<div><div style="font-weight:700;color:#1A3A5C;font-size:.9rem;">Authentic materials</div>'
+             '<div style="color:#6B7280;font-size:.82rem;">TOEFL conversations at beginner to advanced level, with full phonological annotation.</div></div></div>'
+             '<div style="display:flex;gap:12px;align-items:flex-start;">'
+             '<span style="font-size:1.3rem;flex-shrink:0;">📖</span>'
+             '<div><div style="font-weight:700;color:#1A3A5C;font-size:.9rem;">Phonology Guide</div>'
+             '<div style="color:#6B7280;font-size:.82rem;">Understand why fast native speech sounds the way it does — and stop mishearing the same patterns.</div></div></div>'
+             '<div style="display:flex;gap:12px;align-items:flex-start;">'
+             '<span style="font-size:1.3rem;flex-shrink:0;">📋</span>'
+             '<div><div style="font-weight:700;color:#1A3A5C;font-size:.9rem;">Notice Log</div>'
+             '<div style="color:#6B7280;font-size:.82rem;">Capture what you observe after each session. Over time, patterns in your log reveal exactly what to work on.</div></div></div>'
+             '<div style="display:flex;gap:12px;align-items:flex-start;">'
+             '<span style="font-size:1.3rem;flex-shrink:0;">📈</span>'
+             '<div><div style="font-weight:700;color:#1A3A5C;font-size:.9rem;">Progress</div>'
+             '<div style="color:#6B7280;font-size:.82rem;">Track your sessions and see which phonological phenomena you notice most across your practice.</div></div></div>'
+             '<div style="display:flex;gap:12px;align-items:flex-start;">'
+             '<span style="font-size:1.3rem;flex-shrink:0;">💬</span>'
+             '<div><div style="font-weight:700;color:#1A3A5C;font-size:.9rem;">Community</div>'
+             '<div style="color:#6B7280;font-size:.82rem;">Share your notices with other learners and see what others are discovering in their practice.</div></div></div>'
+             '</div>'
+         ),
+         "detail_zh": "",
+         "btn": "Let's start / 开始练习"},
     ]
     card = cards[step]
 
@@ -76,7 +100,7 @@ def _onboarding():
         <div style="font-size:3rem;margin-bottom:16px;">{card['icon']}</div>
         <div style="font-size:1.35rem;font-weight:700;color:#1A3A5C;line-height:1.4;margin-bottom:10px;">{card['en']}</div>
         <div style="font-size:1rem;color:#6B7280;margin-bottom:20px;">{card['zh']}</div>
-        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:20px 24px;margin-bottom:16px;text-align:left;white-space:pre-line;">
+        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:20px 24px;margin-bottom:16px;text-align:left;{'white-space:pre-line;' if step < 3 else ''}">
             <div style="font-size:.9rem;color:#374151;line-height:1.7;">{card['detail_en']}</div>
             <div style="font-size:.84rem;color:#9CA3AF;margin-top:8px;line-height:1.65;">{card['detail_zh']}</div>
         </div>
