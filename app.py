@@ -81,19 +81,13 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Save progress button + status
+    # Save progress button + status (only shown when uid + Firebase are ready)
     last_saved = st.session_state.get("last_saved_at")
     uid = st.session_state.get("user_uid")
     if uid:
-        save_label = f"💾 Save progress" + (f" · {last_saved}" if last_saved else "")
+        save_label = "💾 Save progress" + (f" · {last_saved}" if last_saved else "")
         if st.button(save_label, use_container_width=True, key="sidebar_save"):
             trigger_save()
-    else:
-        st.markdown(
-            '<div style="font-size:.72rem;color:#9CA3AF;text-align:center;padding:4px 0;">'
-            '⏳ Connecting…</div>',
-            unsafe_allow_html=True,
-        )
 
     st.markdown("---")
 
